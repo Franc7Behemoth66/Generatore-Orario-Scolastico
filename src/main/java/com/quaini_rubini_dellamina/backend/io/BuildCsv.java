@@ -2,14 +2,10 @@ package com.quaini_rubini_dellamina.backend.io;
 
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
-import com.quaini_rubini_dellamina.backend.entità.Giorni;
-import com.quaini_rubini_dellamina.backend.entità.Lezione;
-import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
+import com.quaini_rubini_dellamina.backend.entità.*;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -22,7 +18,7 @@ public class BuildCsv {
     public void scriviOrario(List<Lezione> orario, String outputPath) throws IOException {
         try (CSVWriter writer = new CSVWriter(new FileWriter(outputPath))) {
 
-            writer.writeNext(new String[]{"ora", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(), Giorni.GIOVEDI.getNome(),
+            writer.writeNext(new String[]{"Ora", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(), Giorni.GIOVEDI.getNome(),
             Giorni.VENERDI.getNome()});
 
 
@@ -46,15 +42,6 @@ public class BuildCsv {
         scriviOrario(orario, DEFAULT_OUTPUT_PATH);
     }
 
-    public static void main (String[] args) throws CsvValidationException, IOException {
-        BuildCsv cvsB = new BuildCsv();
-        ReadCsv read = new ReadCsv();
-        List<Lezione> lessons = read.leggi();
-        cvsB.scriviOrario(lessons);
-
-
-
-    }
 
 }
 
