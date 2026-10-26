@@ -2,7 +2,9 @@ package com.quaini_rubini_dellamina.backend.io;
 
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
+import com.quaini_rubini_dellamina.backend.entità.Giorni;
 import com.quaini_rubini_dellamina.backend.entità.Lezione;
+import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -18,11 +20,12 @@ public class BuildCsv {
     public void scriviOrario(List<Lezione> orario, String outputPath) throws IOException {
         try (CSVWriter writer = new CSVWriter(new FileWriter(outputPath))) {
 
-            writer.writeNext(new String[]{"ora", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"});
+            writer.writeNext(new String[]{"ora", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(), Giorni.GIOVEDI.getNome(),
+            Giorni.VENERDI.getNome()});
 
             for (int ora = 0; ora < 6; ora++) {
                 String[] riga = new String[6];
-                riga[0] = String.valueOf(ora + 1);
+                riga[0] = OrarioLezioni.getNome(ora);
 
                 for (int giorno = 0; giorno < 5; giorno++) {
                     Lezione l = orario.get(giorno * 6 + ora);
@@ -38,8 +41,6 @@ public class BuildCsv {
             }
         }
     }
-
-
 
 
     public void scriviOrario(List<Lezione> orario) throws IOException {
