@@ -1,0 +1,12 @@
+
+{
+"nome_scuola": "Saraceno-Romegialli",
+"preferenze": [
+  {
+    "id": 1,
+    "nome": "Mario",
+    "cognome": "Rossi",
+    "ruolo": "Sviluppatore"
+  }
+]
+}
