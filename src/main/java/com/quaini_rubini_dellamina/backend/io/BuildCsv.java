@@ -8,6 +8,8 @@ import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -23,20 +25,17 @@ public class BuildCsv {
             writer.writeNext(new String[]{"ora", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(), Giorni.GIOVEDI.getNome(),
             Giorni.VENERDI.getNome()});
 
+
             for (int ora = 0; ora < 6; ora++) {
                 String[] riga = new String[6];
                 riga[0] = OrarioLezioni.getNome(ora);
 
-                for (int giorno = 0; giorno < 5; giorno++) {
-                    Lezione l = orario.get(giorno * 6 + ora);
-                    if (l == null) {
-                        riga[giorno + 1] = "";
-                    } else {
-                        riga[giorno + 1] = l.getMateria().getNome()
-                                + " (" + l.getDocente().getNome()
-                                + ", " + l.getClasse().getChiave() + ")";
-                    }
-                }
+               for(int giorno = 0; giorno < 5; giorno++){
+                   int indice = giorno * 6 + ora;
+                   Lezione l = indice < orario.size() ? orario.get(indice) : null;
+                   riga[giorno + 1] = (l == null) ? "" : l.getMateria().getNome();
+
+               }
                 writer.writeNext(riga);
             }
         }

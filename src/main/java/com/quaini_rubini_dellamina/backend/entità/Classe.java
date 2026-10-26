@@ -25,7 +25,7 @@ public class Classe {
         return indirizzo;
     }
 
-    // Restituisce una chiave leggibile, es. "5A-INFO"
+    // Restituisce una chiave leggibile, es. "5A-INFO", chiave fondamentale per generare orario di una specifica classe
     public String getChiave() {
         return anno + "" + sezione + "-" + indirizzo;
     }
