@@ -2,7 +2,10 @@ package com.quaini_rubini_dellamina.frontend;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
+
 
 public class HomeWindow extends JFrame {
     public HomeWindow() {
@@ -105,6 +108,20 @@ public class HomeWindow extends JFrame {
                 setVisible(false);
             }
         });
+
+        carica.addActionListener(e ->{
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("File csv", "csv");
+            fileChooser.setFileFilter(filter);//solo file csv accettabili come input
+            int result = fileChooser.showOpenDialog(this);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File selectedFile = fileChooser.getSelectedFile();
+                System.out.println("Selected file: " + selectedFile.getAbsolutePath());
+            }
+        });
+
+
 
 
         pack(); // Adatta automaticamente l'altezza della finestra al contenuto
