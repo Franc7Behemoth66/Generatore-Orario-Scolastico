@@ -28,6 +28,12 @@
             <artifactId>opencsv</artifactId>
             <version>5.12.0</version>
         </dependency>
+        <!-- Per creare PDF  -->
+        <dependency>
+            <groupId>com.orsonpdf</groupId>
+            <artifactId>orsonpdf</artifactId>
+            <version>1.9.1</version>
+        </dependency>
 
     </dependencies>
     <build>
