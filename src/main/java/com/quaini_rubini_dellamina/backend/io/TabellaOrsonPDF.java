@@ -22,7 +22,7 @@ public class TabellaOrsonPDF {
             "src/main/java/com/quaini_rubini_dellamina/Orario.pdf";
 
 
-    public static void creaPDF(List<Slot> slotPDF, String dir) {
+    public static void creaPDF(List<Slot> slotPDF, String dir, String titolo) {
         PDFDocument pdfDoc = new PDFDocument();
         Rectangle bounds = new Rectangle(1500, 800);
         Page page = pdfDoc.createPage(bounds);
@@ -55,7 +55,17 @@ public class TabellaOrsonPDF {
         int[] larghezze = {60, 200, 200, 200, 200, 200};
         int larghezzaTotale = Arrays.stream(larghezze).sum();
 
-        //  Header
+        //titolo
+
+        g2.setPaint(new Color(77, 146, 173));
+        FontMetrics fm = g2.getFontMetrics(); //per ricavare la lughezza della stringa
+        String tit = "Classe " + titolo;
+
+        g2.setFont(new Font("SansSerif", Font.BOLD, 17));
+        int xPosScrittaCent = (larghezzaTotale - fm.stringWidth(tit) ) / 2;
+        g2.drawString(tit, xPosScrittaCent, 40);
+
+        //  Header tabella
         g2.setFont(new Font("SansSerif", Font.BOLD, 12));
         g2.setPaint(new Color(60, 60, 60));
         g2.fillRect(xInizio, yInizio, larghezzaTotale, altezzaRiga);
@@ -102,8 +112,8 @@ public class TabellaOrsonPDF {
         System.out.println("Tabella PDF generata in: " + fileOutput.getAbsolutePath());
     }
 
-    public static void creaPDF(List<Slot> slotAssegnati) throws IOException {
-        creaPDF(slotAssegnati, DEFAULT_OUTPUT_PATH);
+    public static void creaPDF(List<Slot> slotAssegnati, String titolo) throws IOException {
+        creaPDF(slotAssegnati, DEFAULT_OUTPUT_PATH, titolo);
     }
 
     public static void main(String[] args) throws CsvValidationException, IOException {
@@ -114,6 +124,6 @@ public class TabellaOrsonPDF {
         lessons= read.leggi();
         slotts = genny.genOrarioOnClasse(lessons,"5A-INFO");
 
-        TabellaOrsonPDF.creaPDF(slotts);
+        TabellaOrsonPDF.creaPDF(slotts,"5A-INFO");
     }
 }

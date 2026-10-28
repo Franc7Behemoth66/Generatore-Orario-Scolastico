@@ -25,6 +25,16 @@ public class GenOrario {
         return generaCasuale(lezClasse, new HashSet<>());
     }
 
+    public List<Slot> genOrarioOnDocente(List<Lezione> tutteLeLezioni, String keyDocente) {
+        List<Lezione> lezClasse = new ArrayList<>();
+        for (Lezione l : tutteLeLezioni) {
+            if (l.getDocente().getNome().equals(keyDocente)) {
+                lezClasse.add(l);
+            }//considero solo le lezioni con quel prof
+        }
+        return generaCasuale(lezClasse, new HashSet<>());
+    }
+
     public List<Slot> generaCasuale(List<Lezione> lezioni,Set<String> slotDocentiOccupati) {
         Random rnd = new Random();
         List<Slot> daPiazzare = espandiInSlot(lezioni);
@@ -88,12 +98,18 @@ public class GenOrario {
 //test
     public static void main( String[] args) throws CsvValidationException, IOException {
         ReadCsv r= new ReadCsv();
-        List<Lezione> lessons = new ArrayList<>();
+        List<Lezione> lessons;
         lessons = r.leggi();
         List<Slot> slots;
 
+        List<String> ehy = PlessoScuola.plessoRomegialli();
+        for(String g: ehy){
+            System.out.println(g);
+        }
         GenOrario generatore = new GenOrario();
-       slots =  generatore.genOrarioOnClasse(lessons, "5A-INFO");
+       slots =  generatore.genOrarioOnDocente(lessons, "Barini Fabrizio");
+       for(Slot s : slots)
+           System.out.println(s);
 
         BuildCsv builder = new BuildCsv();
         builder.scriviOrario(slots);
