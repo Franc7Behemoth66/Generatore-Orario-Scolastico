@@ -1,6 +1,7 @@
 package com.quaini_rubini_dellamina.frontend;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.quaini_rubini_dellamina.backend.entità.PlessoScuola;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -59,7 +60,15 @@ public class ClasseOrario extends JFrame {
 
 
         // --- SELEZIONA INDIRIZZO ---
-        JComboBox<String> comboIndirizzo = new JComboBox<>(new String[]{"SSS", "ITI", "AFM", "CAT"});
+        String[] profPlesso = new String[]{};
+        if(plesso.equals("saraceno")){
+            profPlesso = PlessoScuola.plessoSaraceno().toArray(new String[0]);
+        }
+        else {
+            profPlesso = PlessoScuola.plessoRomegialli().toArray(new String[0]);
+        }
+
+        JComboBox<String> comboIndirizzo = new JComboBox<>(profPlesso);
         comboIndirizzo.setFont(fontLabel);
         comboIndirizzo.setPreferredSize(new Dimension(160, 30));
 

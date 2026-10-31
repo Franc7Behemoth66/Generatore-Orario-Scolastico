@@ -31,9 +31,9 @@ public class HomeWindow extends JFrame {
 
 
         // --- SEZIONE 1: PLESSO ---
-        JLabel l1 = new JLabel("DI CHE PLESSO DESIDERI VEDERE L'ORARIO");
-        l1.setFont(titleFont);
-        l1.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel l2 = new JLabel("DI CHE PLESSO DESIDERI VEDERE L'ORARIO");
+        l2.setFont(titleFont);
+        l2.setAlignmentX(Component.CENTER_ALIGNMENT);
 
 
         JRadioButton saraceno = new JRadioButton("SARACENO");
@@ -48,16 +48,16 @@ public class HomeWindow extends JFrame {
 
 
         // Pannello per i RadioButton
-        JPanel p1 = createCardPanel();
-        p1.add(saraceno);
-        p1.add(Box.createHorizontalStrut(25));
-        p1.add(romegialli);
+        JPanel p2 = createCardPanel();
+        p2.add(saraceno);
+        p2.add(Box.createHorizontalStrut(25));
+        p2.add(romegialli);
 
 
         // --- SEZIONE 2: TIPO ORARIO ---
-        JLabel l2 = new JLabel("CHE ORARIO VUOI VEDERE");
-        l2.setFont(titleFont);
-        l2.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel l1 = new JLabel("CHE ORARIO VUOI VEDERE");
+        l1.setFont(titleFont);
+        l1.setAlignmentX(Component.CENTER_ALIGNMENT);
 
 
         JRadioButton professori = new JRadioButton("PROFESSORI");
@@ -71,10 +71,10 @@ public class HomeWindow extends JFrame {
         gruppo2.add(classi);
 
 
-        JPanel p2 = createCardPanel();
-        p2.add(professori);
-        p2.add(Box.createHorizontalStrut(25));
-        p2.add(classi);
+        JPanel p1 = createCardPanel();
+        p1.add(professori);
+        p1.add(Box.createHorizontalStrut(25));
+        p1.add(classi);
 
 
         // --- SEZIONE 3: BOTTONI DI AZIONE ---
@@ -107,6 +107,10 @@ public class HomeWindow extends JFrame {
         mainPanel.add(Box.createVerticalStrut(12));
         mainPanel.add(p1);
         mainPanel.add(Box.createVerticalStrut(15));
+
+            p2.setVisible(false);
+            l2.setVisible(false);
+
         mainPanel.add(linea);
         mainPanel.add(Box.createVerticalStrut(15));
         mainPanel.add(l2);
@@ -115,16 +119,21 @@ public class HomeWindow extends JFrame {
         mainPanel.add(Box.createVerticalStrut(15));
         mainPanel.add(p3);
 
+        classi.addActionListener(e -> {
+            p2.setVisible(true);
+            l2.setVisible(true);
+            setSize(550, 360);
+        });
 
-
+        professori.addActionListener(e -> {
+            p2.setVisible(false);
+            l2.setVisible(false);
+            setSize(550, 300);
+        });
 
         cerca.addActionListener(e -> {
-            if (professori.isSelected() && saraceno.isSelected()) {
-                new ProfessoreOrario("saraceno");
-                setVisible(false);
-            }
-            else if (professori.isSelected() && romegialli.isSelected()) {
-                new ProfessoreOrario("romegialli");
+            if (professori.isSelected()) {
+                new ProfessoreOrario();
                 setVisible(false);
             }
             else if (classi.isSelected() && saraceno.isSelected()) {

@@ -9,10 +9,8 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
 public class ProfessoreOrario extends JFrame {
-    String plesso;
-    public ProfessoreOrario(String p) {
+    public ProfessoreOrario() {
         super("ORARIO PROFESSORI SARACENO");
-        this.plesso = p;
 
 
         // Arrotonda gli angoli della finestra
