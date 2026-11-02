@@ -107,12 +107,12 @@ public class GenOrario {
             System.out.println(g);
         }
         GenOrario generatore = new GenOrario();
-       slots =  generatore.genOrarioOnDocente(lessons, "Barini Fabrizio");
+       slots =  generatore.genOrarioOnDocente(lessons,"Baraglia");
        for(Slot s : slots)
            System.out.println(s);
 
         BuildCsv builder = new BuildCsv();
-        builder.scriviOrario(slots);
+        builder.scriviOrario(slots,false);
     }
 }
 

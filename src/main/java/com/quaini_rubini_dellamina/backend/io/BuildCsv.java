@@ -11,10 +11,10 @@ import java.util.List;
 public class BuildCsv {
 
     private static final String DEFAULT_OUTPUT_PATH =
-            "src/main/java/com/quaini_rubini_dellamina/output.csv";
+            "src/main/java/com/quaini_rubini_dellamina";
 
 
-    public void scriviOrario(List<Slot> slotAssegnati, String outputPath) throws IOException {
+    public void scriviOrario(List<Slot> slotAssegnati, String outputPath, boolean isClasse ) throws IOException {
         // Costruisce una griglia [giorno][ora] → nome materia (stringa vuota se libero)
         String[][] griglia = new String[Slot.GIORNI_SETTIMANA][Slot.ORE_GIORNO];
         for (String[] riga : griglia)
@@ -27,8 +27,21 @@ public class BuildCsv {
             if (g >= 0 && g < Slot.GIORNI_SETTIMANA && o >= 0 && o < Slot.ORE_GIORNO) {
                 Lezione l = slot.getLezione();
                 // Formato cella: materia (docente)
-                griglia[g][o] = l.getMateria().getNome() + " (" + l.getDocente().getNome() + ")";
+                if(isClasse)
+                    griglia[g][o] = l.getMateria().getNome() + " (" + l.getDocente().getNome() + ")";
+                // Formato cella: key della classe
+                else
+                    griglia[g][o] = l.getClasse().getChiave();
             }
+        }
+        String nomeORClasse;
+        if (isClasse) {
+            nomeORClasse = slotAssegnati.getFirst().getLezione().getClasse().getChiave();
+            outputPath = outputPath + "/" +nomeORClasse + ".csv";
+        }
+        else {
+            nomeORClasse = slotAssegnati.getFirst().getLezione().getDocente().getNome();
+            outputPath = outputPath  + "/" + nomeORClasse + ".csv";
         }
 
         try (CSVWriter writer = new CSVWriter(new FileWriter(outputPath))) {
@@ -54,8 +67,8 @@ public class BuildCsv {
         }
     }
 
-    public void scriviOrario(List<Slot> slotAssegnati) throws IOException {
-        scriviOrario(slotAssegnati, DEFAULT_OUTPUT_PATH);
+    public void scriviOrario(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
+        scriviOrario(slotAssegnati, DEFAULT_OUTPUT_PATH, isClasse);
     }
 }
 

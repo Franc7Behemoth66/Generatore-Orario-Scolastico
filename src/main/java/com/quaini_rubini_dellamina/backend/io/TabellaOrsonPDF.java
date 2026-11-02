@@ -9,6 +9,7 @@ import com.orsonpdf.PDFGraphics2D;
 import com.quaini_rubini_dellamina.backend.algoritmo.GenOrario;
 import com.quaini_rubini_dellamina.backend.entità.*;
 
+import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
@@ -19,10 +20,10 @@ import java.util.List;
 
 public class TabellaOrsonPDF {
     private static final String DEFAULT_OUTPUT_PATH =
-            "src/main/java/com/quaini_rubini_dellamina/Orario.pdf";
+            "src/main/java/com/quaini_rubini_dellamina";
 
 
-    public static void creaPDF(List<Slot> slotPDF, String dir, String titolo) {
+    public static void creaPDF(List<Slot> slotPDF, String dir, boolean isClasse) {
         PDFDocument pdfDoc = new PDFDocument();
         Rectangle bounds = new Rectangle(1500, 800);
         Page page = pdfDoc.createPage(bounds);
@@ -45,7 +46,13 @@ public class TabellaOrsonPDF {
             int o = slot.indexOra();
             if (g >= 0 && g < Slot.GIORNI_SETTIMANA && o >= 0 && o < Slot.ORE_GIORNO) {
                 Lezione l = slot.getLezione();
-                dati[o][g + 1] = l.getMateria().getNome() + " (" + l.getDocente().getNome() + ")";
+                // Formato cella: materia (docente)
+                if(isClasse)
+                    dati[o][g+1] = l.getMateria().getNome() + " (" + l.getDocente().getNome() + ")";
+                    // Formato cella: key della classe
+                else
+                    dati[o][g+1] = l.getClasse().getChiave();
+
             }
         }
 
@@ -59,7 +66,18 @@ public class TabellaOrsonPDF {
 
         g2.setPaint(new Color(77, 146, 173));
         FontMetrics fm = g2.getFontMetrics(); //per ricavare la lughezza della stringa
-        String tit = "Classe " + titolo;
+        String tit;
+        String nomeORClasse;
+        if (isClasse) {
+            nomeORClasse = slotPDF.getFirst().getLezione().getClasse().getChiave();
+            tit = "Classe " + nomeORClasse ;
+            dir = dir  + "/" + nomeORClasse + ".pdf";
+        }
+        else {
+            nomeORClasse = slotPDF.getFirst().getLezione().getDocente().getNome();
+            tit = "Orario del/della prof " + nomeORClasse;
+            dir = dir  + "/" + nomeORClasse + ".pdf";
+        }
 
         g2.setFont(new Font("SansSerif", Font.BOLD, 17));
         int xPosScrittaCent = (larghezzaTotale - fm.stringWidth(tit) ) / 2;
@@ -112,8 +130,8 @@ public class TabellaOrsonPDF {
         System.out.println("Tabella PDF generata in: " + fileOutput.getAbsolutePath());
     }
 
-    public static void creaPDF(List<Slot> slotAssegnati, String titolo) throws IOException {
-        creaPDF(slotAssegnati, DEFAULT_OUTPUT_PATH, titolo);
+    public static void creaPDF(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
+        creaPDF(slotAssegnati, DEFAULT_OUTPUT_PATH,isClasse);
     }
 
     public static void main(String[] args) throws CsvValidationException, IOException {
@@ -122,8 +140,10 @@ public class TabellaOrsonPDF {
         List<Slot> slotts;
         List<Lezione> lessons;
         lessons= read.leggi();
-        slotts = genny.genOrarioOnClasse(lessons,"5A-INFO");
+        slotts = genny.genOrarioOnDocente(lessons,"Bongini Jessica");
+        BuildCsv build = new BuildCsv();
+        build.scriviOrario(slotts,false);
 
-        TabellaOrsonPDF.creaPDF(slotts,"5A-INFO");
+        TabellaOrsonPDF.creaPDF(slotts, false);
     }
 }

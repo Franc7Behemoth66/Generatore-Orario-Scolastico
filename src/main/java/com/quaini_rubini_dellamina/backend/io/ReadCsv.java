@@ -31,9 +31,8 @@ public class ReadCsv {
     public List<Lezione> leggi() throws IOException, CsvValidationException {
         List<Lezione> lezioni = new ArrayList<>();
 
-        try (CSVReader csvReader = new CSVReaderBuilder(new FileReader(filepath)).withSkipLines(1) // salta la riga di intestazione
-                .build()) {
-
+        try (CSVReader csvReader = new CSVReader(new FileReader(filepath))){
+            csvReader.readNext(); //ignora nome colonne
             String[] riga;
             int numeroRiga = 1;
             while ((riga = csvReader.readNext()) != null) {
@@ -68,16 +67,17 @@ public class ReadCsv {
         return lezioni;
     }
 
-//    public static void main(String[] args) {
-//        ReadCsv reader = new ReadCsv();
-//        try {
-//            List<Lezione> lezioni = reader.leggi();
-//            System.out.println("File csv letto con successo");
-//            System.out.println("Lezioni caricate: " + lezioni.size());
-//            lezioni.forEach(System.out::println);
-//        } catch (IOException | CsvValidationException e) {
-//            System.err.println("Errore nella lettura del CSV: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-//    }
+    public static void main(String[] args) {
+        ReadCsv reader = new ReadCsv();
+        try {
+            List<Lezione> lezioni = reader.leggi();
+            System.out.println("File csv letto con successo");
+            System.out.println("Lezioni caricate: " + lezioni.size());
+            lezioni.forEach(System.out::println);
+            System.out.println(lezioni.size());
+        } catch (IOException | CsvValidationException e) {
+            System.err.println("Errore nella lettura del CSV: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
