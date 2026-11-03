@@ -4,8 +4,8 @@ import com.opencsv.exceptions.CsvValidationException;
 import com.quaini_rubini_dellamina.backend.entità.*;
 import com.quaini_rubini_dellamina.backend.io.BuildCsv;
 import com.quaini_rubini_dellamina.backend.io.ReadCsv;
+import com.quaini_rubini_dellamina.backend.io.TabellaOrsonPDF;
 
-import javax.swing.plaf.ButtonUI;
 import java.io.IOException;
 import java.util.*;
 
@@ -111,8 +111,10 @@ public class GenOrario {
        for(Slot s : slots)
            System.out.println(s);
 
+        TabellaOrsonPDF.creaPDF(slots, false);
         BuildCsv builder = new BuildCsv();
         builder.scriviOrario(slots,false);
+    
     }
 }
 

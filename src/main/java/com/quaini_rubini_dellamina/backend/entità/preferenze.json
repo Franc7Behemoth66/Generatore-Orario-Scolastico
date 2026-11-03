@@ -1,11 +1,25 @@
 {
-"nome_scuola": "Saraceno-Romegialli",
+"nome-scuola": "Saraceno-Romegialli",
 "preferenze": [
   {
-    "id": 1,
-    "nome": "Mario",
-    "cognome": "Rossi",
-    "ruolo": "Sviluppatore"
+    "docente": "Bongini Claudio",
+    "giorno-libero": "Lunedì"
+  },
+  {
+    "docente": "Manni Massimiliano",
+    "giorno-libero" : "Venerdì",
+    "limite-h-giornaliere" : "3"
+  },
+  {
+    "docente": "Del Nero Davide",
+    "giorno-libero" : "Mercoledì",
+    "limite-h-giornaliere" : "3",
+    "no-ultima-h" : "true",
+    "no-prima-h" : "true"
+  },
+  {
+
   }
+
 ]
 }
