@@ -15,6 +15,9 @@ public class GenOrario {
     private static final int GIORNI  = Slot.GIORNI_SETTIMANA; // 5
     private static final int ORE     = Slot.ORE_GIORNO;       // 6
 
+    private final Set<String> docentiUsati = new HashSet<>(); // Set (Lista univoca) dei docente occupati
+
+
     public List<Slot> genOrarioOnClasse(List<Lezione> tutteLeLezioni, String keyClasse) {
         List<Lezione> lezClasse = new ArrayList<>();
         for (Lezione l : tutteLeLezioni) {
@@ -22,28 +25,16 @@ public class GenOrario {
                 lezClasse.add(l);
             }//considero solo le lezioni con la keyClasse come classe
         }
-        return generaCasuale(lezClasse, new HashSet<>());
+        return generaCasuale(lezClasse);
     }
 
-    public List<Slot> genOrarioOnDocente(List<Lezione> tutteLeLezioni, String keyDocente) {
-        List<Lezione> lezClasse = new ArrayList<>();
-        for (Lezione l : tutteLeLezioni) {
-            if (l.getDocente().getNome().equals(keyDocente)) {
-                lezClasse.add(l);
-            }//considero solo le lezioni con quel prof
-        }
-        return generaCasuale(lezClasse, new HashSet<>());
-    }
-
-    public List<Slot> generaCasuale(List<Lezione> lezioni,Set<String> slotDocentiOccupati) {
+    public List<Slot> generaCasuale(List<Lezione> lezioni) {
         Random rnd = new Random();
         List<Slot> daPiazzare = espandiInSlot(lezioni);
         // Mescola casualmente per distribuire le lezioni in modo vario
         Collections.shuffle(daPiazzare,rnd);
         // Griglia di boolean, valore true se slot già usato per questa classe
         boolean[][] occupato = new boolean[GIORNI][ORE];
-        // Set (Lista univoca) dei docente occupati
-        Set<String> docentiUsati= new HashSet<>(slotDocentiOccupati);
 
         List<Slot> assegnati = new ArrayList<>();
 
@@ -107,13 +98,12 @@ public class GenOrario {
             System.out.println(g);
         }
         GenOrario generatore = new GenOrario();
-       slots =  generatore.genOrarioOnDocente(lessons,"Baraglia");
+       slots =  generatore.genOrarioOnClasse(lessons,"5A-INF");
        for(Slot s : slots)
            System.out.println(s);
 
-        TabellaOrsonPDF.creaPDF(slots, false);
-        BuildCsv builder = new BuildCsv();
-        builder.scriviOrario(slots,false);
+        TabellaOrsonPDF.creaPDF(slots, true);
+        BuildCsv.scriviOrario(slots,true);
     
     }
 }

@@ -25,5 +25,8 @@ public class Docente {
         return nome.equalsIgnoreCase(((Docente) o).nome);
     }
 
-
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(nome);
+    }
 }

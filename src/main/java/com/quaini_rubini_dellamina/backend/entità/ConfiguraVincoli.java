@@ -1,6 +1,5 @@
 package com.quaini_rubini_dellamina.backend.entità;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;

@@ -44,5 +44,8 @@ public class Classe {
                 && indirizzo.equalsIgnoreCase(c.indirizzo);
     }
 
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(anno, sezione, indirizzo);
+    }
 }

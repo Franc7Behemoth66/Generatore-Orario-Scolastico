@@ -14,7 +14,7 @@ public class BuildCsv {
             "src/main/java/com/quaini_rubini_dellamina";
 
 
-    public void scriviOrario(List<Slot> slotAssegnati, String outputPath, boolean isClasse ) throws IOException {
+    public  static void scriviOrario(List<Slot> slotAssegnati, String outputPath, boolean isClasse ) throws IOException {
         // Costruisce una griglia [giorno][ora] → nome materia (stringa vuota se libero)
         String[][] griglia = new String[Slot.GIORNI_SETTIMANA][Slot.ORE_GIORNO];
         for (String[] riga : griglia)
@@ -67,7 +67,7 @@ public class BuildCsv {
         }
     }
 
-    public void scriviOrario(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
+    public static void scriviOrario(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
         scriviOrario(slotAssegnati, DEFAULT_OUTPUT_PATH, isClasse);
     }
 }

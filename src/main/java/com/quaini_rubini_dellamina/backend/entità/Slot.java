@@ -70,4 +70,8 @@ public class Slot {
         return indice == slot.indice && Objects.equals(lezione, slot.lezione);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(lezione, indice, assegnato);
+    }
 }

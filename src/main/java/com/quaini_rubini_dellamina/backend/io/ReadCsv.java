@@ -1,14 +1,12 @@
 package com.quaini_rubini_dellamina.backend.io;
 
 import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import com.quaini_rubini_dellamina.backend.entità.*;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 public class ReadCsv {
@@ -67,14 +65,35 @@ public class ReadCsv {
         return lezioni;
     }
 
+
+    public HashSet<Classe> getAllClassi() throws CsvValidationException, IOException {
+        HashSet<Classe> classi = new HashSet<>();
+        for (Lezione lezione : leggi())
+            classi.add(lezione.getClasse());
+        return classi;
+    } //restituisce in modo univoco le classi
+
+    public HashSet<Docente> getAllDocenti() throws CsvValidationException, IOException {
+        HashSet<Docente> docenti = new HashSet<>();
+        for (Lezione lezione : leggi())
+            docenti.add(lezione.getDocente());
+        return docenti;
+    } //restituisce in modo univoco i docenti
+
+
     public static void main(String[] args) {
         ReadCsv reader = new ReadCsv();
         try {
             List<Lezione> lezioni = reader.leggi();
             System.out.println("File csv letto con successo");
-            System.out.println("Lezioni caricate: " + lezioni.size());
-            lezioni.forEach(System.out::println);
+            //System.out.println("Lezioni caricate: " + lezioni.size());
+            //lezioni.forEach(System.out::println);
             System.out.println(lezioni.size());
+            for(Classe e : reader.getAllClassi())
+                System.out.println(e);
+            for(Docente d : reader.getAllDocenti())
+                System.out.println(d);
+
         } catch (IOException | CsvValidationException e) {
             System.err.println("Errore nella lettura del CSV: " + e.getMessage());
             e.printStackTrace();
