@@ -91,20 +91,25 @@ public class GenOrario {
         ReadCsv r= new ReadCsv();
         List<Lezione> lessons;
         lessons = r.leggi();
-        List<Slot> slots;
-
-        List<String> ehy = PlessoScuola.plessoRomegialli();
-        for(String g: ehy){
-            System.out.println(g);
-        }
+        ArrayList<Slot> slots;
+        Istituto school = new Istituto(r.getAllClassi(),r.getAllDocenti());
         GenOrario generatore = new GenOrario();
-       slots =  generatore.genOrarioOnClasse(lessons,"5A-INF");
-       for(Slot s : slots)
-           System.out.println(s);
 
-        TabellaOrsonPDF.creaPDF(slots, true);
-        BuildCsv.scriviOrario(slots,true);
-    
+        for(Classe s : r.getAllClassi()){
+            slots = (ArrayList<Slot>) generatore.genOrarioOnClasse(lessons,s.getChiave());
+            school.setHforClasse(s.getChiave(),slots);
+            BuildCsv.scriviOrario(slots,"/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut",true);
+        }
+
+        school.deduciOrariProf();
+        Map<String, ArrayList<Slot> > doc = school.getDocenti_tabelleh();
+        for( String key : doc.keySet() ){
+            BuildCsv.scriviOrario(doc.get(key),"/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut",false);
+        }
+//        Map<String, ArrayList<Slot>> mappa = school.getClassi_tabelleh();
+//        for (String chiave : mappa.keySet())
+//            System.out.println("key: " + chiave + " value: " + mappa.get(chiave));
+
     }
 }
 

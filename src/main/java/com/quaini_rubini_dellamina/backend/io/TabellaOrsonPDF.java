@@ -134,16 +134,16 @@ public class TabellaOrsonPDF {
         creaPDF(slotAssegnati, DEFAULT_OUTPUT_PATH,isClasse);
     }
 
-    public static void main(String[] args) throws CsvValidationException, IOException {
-        ReadCsv read = new ReadCsv();
-        GenOrario genny = new GenOrario();
-        List<Slot> slotts;
-        List<Lezione> lessons;
-        lessons= read.leggi();
-        slotts = genny.genOrarioOnDocente(lessons,"Bongini Jessica");
-        BuildCsv build = new BuildCsv();
-        build.scriviOrario(slotts,false);
-
-        TabellaOrsonPDF.creaPDF(slotts, false);
-    }
+//    public static void main(String[] args) throws CsvValidationException, IOException {
+//        ReadCsv read = new ReadCsv();
+//        GenOrario genny = new GenOrario();
+//        List<Slot> slotts;
+//        List<Lezione> lessons;
+//        lessons= read.leggi();
+//        slotts = genny.genOrarioOnDocente(lessons,"Bongini Jessica");
+//        BuildCsv build = new BuildCsv();
+//        build.scriviOrario(slotts,false);
+//
+//        TabellaOrsonPDF.creaPDF(slotts, false);
+//    }
 }

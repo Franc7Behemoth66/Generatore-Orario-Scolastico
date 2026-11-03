@@ -55,17 +55,17 @@ public class Istituto {
         classi_tabelleh.put(key, orarioGenerated);
     }
 
-
-    public static void main(String[] args) throws CsvValidationException, IOException {
-        ReadCsv leggi = new ReadCsv();
-
-        Istituto sara = new Istituto(leggi.getAllClassi(),leggi.getAllDocenti());
-
-        sara.getClassiUni().forEach(System.out::println);
-        sara.getDocentiUni().forEach(System.out::println);
-
-
+    public void deduciOrariProf(){
+        for (String chiave : docenti_tabelleh.keySet()){
+            ArrayList<Slot> risultato = new ArrayList<>();
+            for(ArrayList<Slot> provvisorioHClasse: classi_tabelleh.values()){
+                for(Slot s : provvisorioHClasse){
+                    if(s.getLezione().getDocente().getNome().equals(chiave))
+                        risultato.add(s);
+                }
+            }
+            docenti_tabelleh.put(chiave,risultato);
+        }
     }
-
 
 }
