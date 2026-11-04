@@ -45,6 +45,13 @@ public class Slot {
         this.assegnato = true;
     }
 
+    // Crea uno slot vuoto (ora buca) già assegnato a un preciso giorno/ora.
+    public static Slot vuoto(int giorno, int ora) {
+        Slot s = new Slot(null);
+        s.assegna(giorno, ora);
+        return s;
+    }
+
     // Restituisce l'indice del giorno (0 = Lunedì … 4 = Venerdì).
     public int indexGiorno() {
         return indice / ORE_GIORNO;

@@ -29,34 +29,88 @@ public class GenOrario {
     }
 
     public List<Slot> generaCasuale(List<Lezione> lezioni) {
+        final int MAX_SLOT = GIORNI * ORE; // 30
+        final int MAX_TENTATIVI = 200;
+
+        Set<String> docentiUsatiBackup = new HashSet<>(docentiUsati);
+
+        for (int tentativo = 0; tentativo < MAX_TENTATIVI; tentativo++) {
+            // Ripristina lo stato dei docenti ad ogni tentativo
+            docentiUsati.clear();
+            docentiUsati.addAll(docentiUsatiBackup);
+
+            Random rnd = new Random();
+            List<Slot> daPiazzare = espandiInSlot(lezioni);
+            Collections.shuffle(daPiazzare, rnd);
+
+            boolean[][] occupato = new boolean[GIORNI][ORE];
+            List<Slot> assegnati = new ArrayList<>();
+
+            for (Slot slot : daPiazzare) {
+                if (assegnati.size() >= MAX_SLOT)
+                    break; // 30 raggiunti
+
+                String nomeDocente = slot.getLezione().getDocente().getNome();
+                List<int[]> liberi = getSlotLiberi(occupato, docentiUsati, nomeDocente, rnd);
+
+                if (liberi.isEmpty())
+                    continue; // conflitto docente, provo la prossima lezione
+
+                int[] scelta = liberi.getFirst();
+                int giorno = scelta[0];
+                int ora    = scelta[1];
+
+                slot.assegna(giorno, ora);
+                occupato[giorno][ora] = true;
+                docentiUsati.add(chiaveDocente(nomeDocente, giorno, ora));
+                assegnati.add(slot);
+            }
+
+            if (assegnati.size() == MAX_SLOT) {
+                return assegnati; // 30/30 raggiunto
+            }
+        }
+
+        // Fallback: ultimo tentativo, restituisce ciò che riesce + buche
+        docentiUsati.clear();
+        docentiUsati.addAll(docentiUsatiBackup);
+
         Random rnd = new Random();
         List<Slot> daPiazzare = espandiInSlot(lezioni);
-        // Mescola casualmente per distribuire le lezioni in modo vario
-        Collections.shuffle(daPiazzare,rnd);
-        // Griglia di boolean, valore true se slot già usato per questa classe
+        Collections.shuffle(daPiazzare, rnd);
         boolean[][] occupato = new boolean[GIORNI][ORE];
-
         List<Slot> assegnati = new ArrayList<>();
 
         for (Slot slot : daPiazzare) {
+            if (assegnati.size() >= MAX_SLOT) break;
             String nomeDocente = slot.getLezione().getDocente().getNome();
-            // Costruisce la lista degli slot liberi in ordine casuale
             List<int[]> liberi = getSlotLiberi(occupato, docentiUsati, nomeDocente, rnd);
-
-            if (liberi.isEmpty()) {
-                System.err.println("Slot liberi terminati");
-                return assegnati;
-            }
-
+            if (liberi.isEmpty())
+                continue;
             int[] scelta = liberi.getFirst();
-            int giorno = scelta[0];
-            int ora    = scelta[1];
-
-            slot.assegna(giorno, ora);
-            occupato[giorno][ora] = true;
-            docentiUsati.add(chiaveDocente(nomeDocente, giorno, ora));
+            slot.assegna(scelta[0], scelta[1]);
+            occupato[scelta[0]][scelta[1]] = true;
+            docentiUsati.add(chiaveDocente(nomeDocente, scelta[0], scelta[1]));
             assegnati.add(slot);
         }
+
+        int piazzati = assegnati.size();
+        // Riempie eventuali buche residue
+        for (int g = 0; g < GIORNI; g++) {
+            for (int o = 0; o < ORE; o++) {
+                if (!occupato[g][o]) {
+                    assegnati.add(Slot.vuoto(g, o));
+                }
+            }
+        }
+
+        if (piazzati < MAX_SLOT) {
+            String classe = lezioni.isEmpty() ? "?" : lezioni.getFirst().getClasse().getChiave();
+            System.err.println("ATTENZIONE: classe " + classe
+                    + " piazzate solo " + piazzati + "/" + MAX_SLOT
+                    + " dopo " + 200 + " tentativi");
+        }
+
         return assegnati;
     }
 
