@@ -4,7 +4,6 @@ import com.opencsv.exceptions.CsvValidationException;
 import com.quaini_rubini_dellamina.backend.entità.*;
 import com.quaini_rubini_dellamina.backend.io.BuildCsv;
 import com.quaini_rubini_dellamina.backend.io.ReadCsv;
-import com.quaini_rubini_dellamina.backend.io.TabellaOrsonPDF;
 
 import java.io.IOException;
 import java.util.*;
@@ -12,10 +11,11 @@ import java.util.*;
 
 public class GenOrario {
 
-    private static final int GIORNI  = Slot.GIORNI_SETTIMANA; // 5
-    private static final int ORE     = Slot.ORE_GIORNO;       // 6
+    protected static final int GIORNI  = Slot.GIORNI_SETTIMANA; // 5
+    protected static final int ORE     = Slot.ORE_GIORNO;       // 6
 
-    private final Set<String> docentiUsati = new HashSet<>(); // Set (Lista univoca) dei docente occupati
+    protected final Set<String> docentiUsati = new HashSet<>(); // Set (Lista univoca) dei docente occupati
+    protected final Map<String, int[]> oreDocenteGiorno = new HashMap<>(); // ore per docente e giorno
 
 
     public List<Slot> genOrarioOnClasse(List<Lezione> tutteLeLezioni, String keyClasse) {
@@ -33,11 +33,13 @@ public class GenOrario {
         final int MAX_TENTATIVI = 200;
 
         Set<String> docentiUsatiBackup = new HashSet<>(docentiUsati);
+        Map<String, int[]> oreBackup = clonaOre(oreDocenteGiorno);
 
         for (int tentativo = 0; tentativo < MAX_TENTATIVI; tentativo++) {
             // Ripristina lo stato dei docenti ad ogni tentativo
             docentiUsati.clear();
             docentiUsati.addAll(docentiUsatiBackup);
+            ripristinaOre(oreBackup);
 
             Random rnd = new Random();
             List<Slot> daPiazzare = espandiInSlot(lezioni);
@@ -51,7 +53,7 @@ public class GenOrario {
                     break; // 30 raggiunti
 
                 String nomeDocente = slot.getLezione().getDocente().getNome();
-                List<int[]> liberi = getSlotLiberi(occupato, docentiUsati, nomeDocente, rnd);
+                List<int[]> liberi = getSlotLiberi(occupato, nomeDocente, rnd);
 
                 if (liberi.isEmpty())
                     continue; // conflitto docente, provo la prossima lezione
@@ -62,7 +64,7 @@ public class GenOrario {
 
                 slot.assegna(giorno, ora);
                 occupato[giorno][ora] = true;
-                docentiUsati.add(chiaveDocente(nomeDocente, giorno, ora));
+                registra(nomeDocente, giorno, ora);
                 assegnati.add(slot);
             }
 
@@ -74,6 +76,7 @@ public class GenOrario {
         // Fallback: ultimo tentativo, restituisce ciò che riesce + buche
         docentiUsati.clear();
         docentiUsati.addAll(docentiUsatiBackup);
+        ripristinaOre(oreBackup);
 
         Random rnd = new Random();
         List<Slot> daPiazzare = espandiInSlot(lezioni);
@@ -84,13 +87,13 @@ public class GenOrario {
         for (Slot slot : daPiazzare) {
             if (assegnati.size() >= MAX_SLOT) break;
             String nomeDocente = slot.getLezione().getDocente().getNome();
-            List<int[]> liberi = getSlotLiberi(occupato, docentiUsati, nomeDocente, rnd);
+            List<int[]> liberi = getSlotLiberi(occupato, nomeDocente, rnd);
             if (liberi.isEmpty())
                 continue;
             int[] scelta = liberi.getFirst();
             slot.assegna(scelta[0], scelta[1]);
             occupato[scelta[0]][scelta[1]] = true;
-            docentiUsati.add(chiaveDocente(nomeDocente, scelta[0], scelta[1]));
+            registra(nomeDocente, scelta[0], scelta[1]);
             assegnati.add(slot);
         }
 
@@ -124,11 +127,11 @@ public class GenOrario {
         return slots;
     }
 
-    private List<int[]> getSlotLiberi(boolean[][] occupato, Set<String> docentiUsati, String nomeDocente, Random rnd) {
+    private List<int[]> getSlotLiberi(boolean[][] occupato, String nomeDocente, Random rnd) {
         List<int[]> liberi = new ArrayList<>();
         for (int g = 0; g < GIORNI; g++) {
             for (int o = 0; o < ORE; o++) {
-                if (!occupato[g][o] && !docentiUsati.contains(chiaveDocente(nomeDocente, g, o)))
+                if (!occupato[g][o] && isSlotValido(nomeDocente, g, o))
                     liberi.add(new int[]{g, o});
             }
         }
@@ -136,34 +139,62 @@ public class GenOrario {
         return liberi;
     }
 
-    private String chiaveDocente(String nomeDocente, int giorno, int ora) {
+    //controlla che il docente non sia accupato in un altra classe
+    protected boolean isSlotValido(String nomeDocente, int giorno, int ora) {
+        return !docentiUsati.contains(chiaveDocente(nomeDocente, giorno, ora));
+    }
+
+    //  Registra un'ora assegnata
+    protected void registra(String nomeDocente, int giorno, int ora) {
+        docentiUsati.add(chiaveDocente(nomeDocente, giorno, ora));
+        oreDocenteGiorno.computeIfAbsent(nomeDocente, k -> new int[GIORNI])[giorno]++;
+    }
+
+    protected String chiaveDocente(String nomeDocente, int giorno, int ora) {
         return nomeDocente + "_" + giorno + "_" + ora;
     }// per evitare che un prof possa essere contemporaneamente in due classi, key univoca
 
-//test
-    public static void main( String[] args) throws CsvValidationException, IOException {
-        ReadCsv r= new ReadCsv();
-        List<Lezione> lessons;
-        lessons = r.leggi();
-        ArrayList<Slot> slots;
-        Istituto school = new Istituto(r.getAllClassi(),r.getAllDocenti());
-        GenOrario generatore = new GenOrario();
+    protected Map<String, int[]> clonaOre(Map<String, int[]> source) {
+        Map<String, int[]> copy = new HashMap<>();
+        for (Map.Entry<String, int[]> e : source.entrySet()) {
+            copy.put(e.getKey(), e.getValue().clone());
+        }
+        return copy;
+    }
 
-        for(Classe s : r.getAllClassi()){
-            slots = (ArrayList<Slot>) generatore.genOrarioOnClasse(lessons,s.getChiave());
-            school.setHforClasse(s.getChiave(),slots);
-            BuildCsv.scriviOrario(slots,"/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut",true);
+    protected void ripristinaOre(Map<String, int[]> backup) {
+        oreDocenteGiorno.clear();
+        for (Map.Entry<String, int[]> e : backup.entrySet()) {
+            oreDocenteGiorno.put(e.getKey(), e.getValue().clone());
+        }
+    }
+
+    //  Genera l'orario di tutte le classi dell'Istituto (e deduce anche l'orario dei prof)
+    public Istituto generaIstituto(ReadCsv r, List<Lezione> lessons, String cartella) throws IOException, CsvValidationException {
+        Istituto school = new Istituto(r.getAllClassi(), r.getAllDocenti());
+
+        for (Classe s : r.getAllClassi()) {
+            ArrayList<Slot> slots = new ArrayList<>(genOrarioOnClasse(lessons, s.getChiave()));
+            school.setHforClasse(s.getChiave(), slots);
+            BuildCsv.scriviOrario(slots, cartella, true);
         }
 
         school.deduciOrariProf();
-        Map<String, ArrayList<Slot> > doc = school.getDocenti_tabelleh();
-        for( String key : doc.keySet() ){
-            BuildCsv.scriviOrario(doc.get(key),"/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut",false);
+        Map<String, ArrayList<Slot>> doc = school.getDocenti_tabelleh();
+        for (String key : doc.keySet()) {
+            BuildCsv.scriviOrario(doc.get(key), cartella, false);
         }
+        return school;
+    }
+
+    public static void main(String[] args) throws CsvValidationException, IOException {
+        ReadCsv r = new ReadCsv();
+        List<Lezione> lessons = r.leggi();
+        GenOrarioVincoli generatore = new GenOrarioVincoli();
+        generatore.generaIstituto(r, lessons, "/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut");
+
 //        Map<String, ArrayList<Slot>> mappa = school.getClassi_tabelleh();
 //        for (String chiave : mappa.keySet())
 //            System.out.println("key: " + chiave + " value: " + mappa.get(chiave));
-
     }
 }
-

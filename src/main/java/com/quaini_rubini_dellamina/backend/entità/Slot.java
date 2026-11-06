@@ -52,6 +52,11 @@ public class Slot {
         return s;
     }
 
+    public boolean isVuoto()
+    {
+        return lezione == null ? true : false;
+    }
+
     // Restituisce l'indice del giorno (0 = Lunedì … 4 = Venerdì).
     public int indexGiorno() {
         return indice / ORE_GIORNO;
@@ -81,4 +86,6 @@ public class Slot {
     public int hashCode() {
         return Objects.hash(lezione, indice, assegnato);
     }
+
+
 }
