@@ -1,0 +1,354 @@
+@startuml DiagrammaClassiBackend
+skinparam linetype ortho
+skinparam classAttributeIconSize 12
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam roundcorner 5
+skinparam nodesep 30
+skinparam ranksep 45
+
+title Diagramma delle classi - Progetto orario scolastico in Java
+
+
+<style>
+document {
+  title {
+    HorizontalAlignment center
+    FontSize 50
+    FontStyle bold
+    FontColor blue
+  }
+
+}
+</style>
+
+
+' ==============================================================
+' PACKAGE entità
+' ==============================================================
+package "backend.entità" #DDDDDD {
+
+    class Docente {
+        - nome: String
+        + Docente(nome: String)
+        + getNome(): String
+        + toString(): String
+        + equals(o: Object): boolean
+        + hashCode(): int
+    }
+
+    class Classe {
+        - anno: int
+        - sezione: char
+        - indirizzo: String
+        + Classe(anno: int, sezione: char, indirizzo: String)
+        + getAnno(): int
+        + getSezione(): char
+        + getIndirizzo(): String
+        + getChiave(): String
+        + toString(): String
+        + equals(o: Object): boolean
+        + hashCode(): int
+    }
+
+    class Materia {
+        - nome: String
+        + Materia(nome: String)
+        + getNome(): String
+        + toString(): String
+        + equals(o: Object): boolean
+    }
+
+    class Lezione {
+        - docente: Docente
+        - classe: Classe
+        - materia: Materia
+        - oreSettimanali: int
+        + Lezione(docente: Docente, classe: Classe, materia: Materia, oreSettimanali: int)
+        + getDocente(): Docente
+        + getClasse(): Classe
+        + getMateria(): Materia
+        + getOreSettimanali(): int
+        + toString(): String
+    }
+
+    class Slot {
+        - lezione: Lezione
+        - indice: int = -1
+        - assegnato: boolean
+        {static} + ORE_GIORNO: int = 6
+        {static} + GIORNI_SETTIMANA: int = 5
+        + Slot(lezione: Lezione, indice: int)
+        + Slot(lezione: Lezione)
+        + getLezione(): Lezione
+        + getIndice(): int
+        + isAssegnato(): boolean
+        + setAssegnato(assegnato: boolean): void
+        + assegna(giorno: int, ora: int): void
+        {static} + vuoto(giorno: int, ora: int): Slot
+        + isVuoto(): boolean
+        + indexGiorno(): int
+        + indexOra(): int
+        + toString(): String
+        + equals(o: Object): boolean
+        + hashCode(): int
+    }
+
+    class Istituto {
+        - docentiUni: List<Docente>
+        - classiUni: List<Classe>
+        - classi_tabelleh: HashMap<String, ArrayList<Slot>>
+        - docenti_tabelleh: HashMap<String, ArrayList<Slot>>
+        + Istituto(classiUni: Set<Classe>, docentiUni: Set<Docente>)
+        + getDocentiUni(): List<Docente>
+        + getClassiUni(): List<Classe>
+        + getDocenti_tabelleh(): HashMap<String, ArrayList<Slot>>
+        + getClassi_tabelleh(): HashMap<String, ArrayList<Slot>>
+        + setHforDocente(key: String, orarioGenerated: ArrayList<Slot>): void
+        + setHforClasse(key: String, orarioGenerated: ArrayList<Slot>): void
+        + deduciOrariProf(): void
+    }
+
+    record Preferenza  {
+        - docente: String
+        - giornoLibero: String
+        - limiteH: int
+        - noPrimaH: boolean
+        - noUltimaH: boolean
+        + docente(): String
+        + giornoLibero(): String
+        + limiteH(): int
+        + noPrimaH(): boolean
+        + noUltimaH(): boolean
+        + toString(): String
+    }
+
+    record ConfiguraVincoli  {
+        - nomeScuola: String
+        - preferenze: List<Preferenza>
+        + nomeScuola(): String
+        + preferenze(): List<Preferenza>
+    }
+
+    enum Giorni {
+        LUNEDI
+        MARTEDI
+        MERCOLEDI
+        GIOVEDI
+        VENERDI
+        - nome: String
+        - Giorni(nome: String)
+        + getNome(): String
+    }
+
+    enum OrarioLezioni {
+        PRIMA
+        SECONDA
+        TERZA
+        QUARTA
+        QUINTA
+        SESTA
+        - nome: String
+        - OrarioLezioni(nome: String)
+        + getNome(): String
+        {static} + getNome(index: int): String
+    }
+
+    enum PlessoScuola {
+        SSS
+        MAT
+        TUR
+        SIA
+        AFM
+        INFO
+        CAT
+        - nome: String
+        - PlessoScuola(nome: String)
+        + getNome(): String
+        {static} + plessoSaraceno(): List<String>
+        {static} + plessoRomegialli(): List<String>
+    }
+}
+
+' ==============================================================
+' PACKAGE algoritmo
+' ==============================================================
+package "backend.algoritmo" #AAFF99 {
+
+    class GenOrario {
+        {static} # GIORNI: int = 5
+        {static} # ORE: int = 6
+        # docentiUsati: Set<String>
+        # oreDocenteGiorno: Map<String, int[]>
+        + genOrarioOnClasse(tutteLeLezioni: List<Lezione>, keyClasse: String): List<Slot>
+        + generaCasuale(lezioni: List<Lezione>): List<Slot>
+        + espandiInSlot(lezioni: List<Lezione>): List<Slot>
+        - getSlotLiberi(occupato: boolean[][], nomeDocente: String, rnd: Random): List<int[]>
+        # isSlotValido(nomeDocente: String, giorno: int, ora: int): boolean
+        # registra(nomeDocente: String, giorno: int, ora: int): void
+        # chiaveDocente(nomeDocente: String, giorno: int, ora: int): String
+        # clonaOre(source: Map<String, int[]>): Map<String, int[]>
+        # ripristinaOre(backup: Map<String, int[]>): void
+        + generaIstituto(r: ReadCsv, lessons: List<Lezione>, cartella: String): Istituto
+        {static} + main(args: String[]): void
+    }
+
+    class GenOrarioVincoli {
+        - vincoli: ConfiguraVincoli
+        - preferenzeDocenti: Map<String, Preferenza>
+        + GenOrarioVincoli(cfg: ConfiguraVincoli)
+        + GenOrarioVincoli()
+        + getVincoli(): ConfiguraVincoli
+        # isSlotValido(nomeDocente: String, giorno: int, ora: int): boolean
+        {static} + indiceGiorno(nomeGiorno: String): int
+        {static} + generaConVincoli(r: ReadCsv, lezioni: List<Lezione>, cartella: String): Istituto
+        {static} + stampaVerifica(vincoli: ConfiguraVincoli, school: Istituto): void
+    }
+}
+
+' ==============================================================
+' PACKAGE io
+' ==============================================================
+package "backend.io"  #DDED3434 {
+
+    class BuildCsv {
+        {static} - DEFAULT_OUTPUT_PATH: String
+        {static} + scriviOrario(slotAssegnati: List<Slot>, outputPath: String, isClasse: boolean): void
+        {static} + scriviOrario(slotAssegnati: List<Slot>, isClasse: boolean): void
+    }
+
+    class ReadCsv {
+        {static} - DEFAULT_PATH: String
+        - filepath: String
+        + ReadCsv()
+        + ReadCsv(filepath: String)
+        + leggi(): List<Lezione>
+        + getAllClassi(): HashSet<Classe>
+        + getAllDocenti(): HashSet<Docente>
+        {static} + main(args: String[]): void
+    }
+
+    class ReadVincoliJSON {
+        {static} - FILE_INPUT_VINCOLI: String
+        - configuraVincoli: ConfiguraVincoli
+        + ReadVincoliJSON()
+        + ReadVincoliJSON(path: String)
+        + getConfiguraVincoli(): ConfiguraVincoli
+        {static} + leggi(): ConfiguraVincoli
+        {static} + leggi(path: String): ConfiguraVincoli
+        {static} + main(args: String[]): void
+    }
+
+    class TabellaOrsonPDF {
+        {static} - DEFAULT_OUTPUT_PATH: String
+        {static} + creaPDF(slotPDF: List<Slot>, dir: String, isClasse: boolean): void
+        {static} + creaPDF(slotAssegnati: List<Slot>, isClasse: boolean): void
+    }
+}
+
+' ==============================================================
+' Ereditarietà
+' ==============================================================
+GenOrario <|-- GenOrarioVincoli
+
+' ==============================================================
+' Relazioni fra entità
+' ==============================================================
+Lezione o-- Docente
+Lezione o-- Classe
+Lezione o-- Materia
+
+Slot o--  Lezione
+Slot ..> Giorni
+Slot ..> OrarioLezioni
+
+Istituto o--  Docente
+Istituto o--  Classe
+Istituto o--  Slot
+
+ConfiguraVincoli *--  Preferenza
+
+' ==============================================================
+' Algoritmo -> entità / io
+' ==============================================================
+GenOrario ..> Lezione
+GenOrario ..> Slot
+GenOrario ..> Istituto
+GenOrario ..> ReadCsv
+GenOrario ..> BuildCsv
+GenOrario ..> GenOrarioVincoli
+
+GenOrarioVincoli o--  ConfiguraVincoli
+GenOrarioVincoli o--  Preferenza
+GenOrarioVincoli ..> ReadVincoliJSON
+GenOrarioVincoli ..> Giorni
+
+' ==============================================================
+' io -> entità
+' ==============================================================
+ReadCsv ..> Lezione
+ReadCsv ..> Docente
+ReadCsv ..> Classe
+ReadCsv ..> Materia
+
+ReadVincoliJSON o--  ConfiguraVincoli
+ReadVincoliJSON ..> ConfiguraVincoli
+
+BuildCsv ..> Slot
+BuildCsv ..> Giorni
+BuildCsv ..> OrarioLezioni
+
+TabellaOrsonPDF ..> Slot
+TabellaOrsonPDF ..> Giorni
+TabellaOrsonPDF ..> OrarioLezioni
+
+' ==============================================================
+' Note
+' ==============================================================
+note right of ConfiguraVincoli
+  Mappato su preferenze.json
+  tramite @JsonProperty (Jackson)
+end note
+
+note right of ReadCsv
+  Legge source.csv
+  (docente, anno, sezione,
+  indirizzo, materia, ore)
+end note
+
+' ==============================================================
+' Legenda
+' ==============================================================
+package "Legenda" <<Rectangle>> {
+    ' Visibilità
+    rectangle Vis [
+        **Visibilità**
+        <color:#2E7D32>●</color> public
+        <color:#D32F2F>■</color>  private
+        <color:#F57C00>◆</color>  protected
+        <color:#1976D2>▲</color>  package-private
+    ]
+
+    ' Tipi di elemento
+    class "class" as t_class
+    enum "enum" as t_enum
+    exception "exception" as t_exception
+    record "record" as t_record
+
+    ' Relazioni
+    class Padre
+    class Figlio
+    class Intero
+    class ParteComp
+    class Contenitore
+    class ParteAggr
+    class Client
+    class Server
+
+    Padre <|-- Figlio : ereditarietà
+    Intero *-- ParteComp : composizione
+    Contenitore o-- ParteAggr : aggregazione
+    Client ..> Server : dipendenza
+}
+
+@enduml
