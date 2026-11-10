@@ -85,9 +85,7 @@ public class HomeWindow extends JFrame {
         l1.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         professori = createSeamlessToggle("PROFESSORI", "icons/user.svg");
-        professori.setBackground(new Color(0, 0, 0, 0));
         classi = createSeamlessToggle("CLASSI", "icons/hat.svg");
-        classi.setBackground(new Color(0, 0, 0, 0));
 
         ButtonGroup gruppoTipo = new ButtonGroup();
         gruppoTipo.add(professori);
@@ -110,9 +108,7 @@ public class HomeWindow extends JFrame {
         l2.setVisible(false);
 
         saraceno = createSeamlessToggle("PLESSO SARACENO", "icons/school.svg");
-        saraceno.setBackground(new Color(0, 0, 0, 0));
         romegialli = createSeamlessToggle("PLESSO ROMEGIALLI", "icons/school.svg");
-        romegialli.setBackground(new Color(0, 0, 0, 0));
 
         ButtonGroup gruppoPlesso = new ButtonGroup();
         gruppoPlesso.add(saraceno);
@@ -219,9 +215,11 @@ public class HomeWindow extends JFrame {
         btn.setFont(new Font("SansSerif", Font.BOLD, 14));
         btn.setIconTextGap(10);
         btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        // Ogni volta che il toggle cambia stato (selezionato/deselezionato,
+        // anche tramite ButtonGroup) aggiorno il bordo verde.
+        btn.addItemListener(e -> updateToggleStyle(btn));
         return btn;
     }
 
@@ -237,6 +235,28 @@ public class HomeWindow extends JFrame {
         return icon;
     }
 
+    /** Applica lo stile al singolo toggle in base allo stato (selezionato o no) e al tema. */
+    private void updateToggleStyle(JToggleButton btn) {
+        if (btn == null) return;
+
+        boolean isDark = FlatLaf.isLafDark();
+        boolean selected = btn.isSelected();
+
+        String selectedBgHex = isDark ? "#3b3b3f" : "#c5c5cb";
+        String bg = selected ? selectedBgHex : "#00000000";
+        String border = selected ? "#198754" : "#00000000"; // verde se selezionato, invisibile altrimenti
+
+        String style = "arc: 12; margin: 8,18,8,18; " +
+                "borderWidth: 2; borderColor: " + border + "; " +
+                "focusWidth: 0; innerFocusWidth: 0; focusedBorderColor: " + border + "; " +
+                "hoverBorderColor: " + border + "; pressedBorderColor: " + border + "; " +
+                "background: " + bg + "; selectedBackground: " + selectedBgHex + "; " +
+                "selectedForeground: $Label.foreground";
+
+        btn.putClientProperty("FlatLaf.style", style);
+        btn.repaint();
+    }
+
     private void applyThemeStyles() {
         boolean isDark = FlatLaf.isLafDark();
 
@@ -247,15 +267,10 @@ public class HomeWindow extends JFrame {
         if (cardConsultazione != null) cardConsultazione.putClientProperty("FlatLaf.style", cardStyle);
         if (cardPlesso != null) cardPlesso.putClientProperty("FlatLaf.style", cardStyle);
 
-        String selectedBgHex = isDark ? "#3b3b3f" : "#c5c5cb";
-        String toggleStyle = "arc: 12; margin: 8,18,8,18; borderWidth: 0; focusWidth: 0; innerFocusWidth: 0; " +
-                "background: transparent; borderColor: transparent; focusedBorderColor: transparent; " +
-                "selectedBackground: " + selectedBgHex + "; selectedForeground: $Label.foreground";
-
-        if (professori != null) professori.putClientProperty("FlatLaf.style", toggleStyle);
-        if (classi != null) classi.putClientProperty("FlatLaf.style", toggleStyle);
-        if (saraceno != null) saraceno.putClientProperty("FlatLaf.style", toggleStyle);
-        if (romegialli != null) romegialli.putClientProperty("FlatLaf.style", toggleStyle);
+        updateToggleStyle(professori);
+        updateToggleStyle(classi);
+        updateToggleStyle(saraceno);
+        updateToggleStyle(romegialli);
     }
 
     private void toggleTheme() {
