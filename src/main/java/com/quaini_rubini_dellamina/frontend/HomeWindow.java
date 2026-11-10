@@ -40,7 +40,7 @@ public class HomeWindow extends JFrame {
 
         JLabel lblTitle = new JLabel("Orario Scolastico");
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 26));
-        lblTitle.setIcon(new FlatSVGIcon("icons/calendar.svg", 28, 28));
+        lblTitle.setIcon(createAdaptiveIcon("icons/calendar.svg", 28, 28));
         lblTitle.setIconTextGap(12);
 
         JLabel lblSubtitle = new JLabel("Istituto di Istruzione Superiore Saraceno - Romegialli");
@@ -60,16 +60,11 @@ public class HomeWindow extends JFrame {
         titleBox.add(Box.createVerticalStrut(6));
         titleBox.add(lblStats);
 
-        // Bottone cambio tema stile pillola
         boolean isDark = FlatLaf.isLafDark();
-        btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
-                new FlatSVGIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
+        btnTema = new JButton(isDark ? "Chiaro" : "Scuro", createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
         btnTema.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnTema.putClientProperty("FlatLaf.style",
-                "arc: 999; " +
-                        "margin: 8,16,8,16; " +
-                        "borderWidth: 1");
+        btnTema.putClientProperty("FlatLaf.style", "arc: 999; margin: 8,16,8,16; borderWidth: 1");
         btnTema.addActionListener(e -> toggleTheme());
 
         JPanel rightHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
@@ -80,7 +75,7 @@ public class HomeWindow extends JFrame {
         headerPanel.add(rightHeader, BorderLayout.EAST);
 
         // ====================================================
-        // SEZIONE 1: CONSULTAZIONE (TITOLETTO ESTERNO)
+        // SEZIONE 1: CONSULTAZIONE
         // ====================================================
         Font titleFont = new Font("SansSerif", Font.BOLD, 13);
 
@@ -106,7 +101,7 @@ public class HomeWindow extends JFrame {
         cardConsultazione = createCardContainer(p1Buttons);
 
         // ====================================================
-        // SEZIONE 2: SELEZIONE PLESSO (TITOLETTO ESTERNO)
+        // SEZIONE 2: SELEZIONE PLESSO
         // ====================================================
         l2 = new JLabel("SELEZIONA IL PLESSO");
         l2.setFont(titleFont);
@@ -134,27 +129,17 @@ public class HomeWindow extends JFrame {
         // ====================================================
         // BOTTONI AZIONE BOTTOM
         // ====================================================
-        JButton cerca = new JButton("CERCA ORARIO", new FlatSVGIcon("icons/lens.svg", 18, 18));
+        JButton cerca = new JButton("CERCA ORARIO", createWhiteIcon("icons/lens.svg", 18, 18));
         cerca.setFont(new Font("SansSerif", Font.BOLD, 14));
         cerca.setIconTextGap(10);
         cerca.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        cerca.putClientProperty("FlatLaf.style",
-                "background: #0d6efd; " +
-                        "foreground: #ffffff; " +
-                        "arc: 12; " +
-                        "margin: 10,22,10,22; " +
-                        "borderWidth: 0; " +
-                        "focusWidth: 0");
+        cerca.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 12; margin: 10,22,10,22; borderWidth: 0; focusWidth: 0");
 
-        JButton carica = new JButton("CARICA CSV", new FlatSVGIcon("icons/caricaCSV.svg", 18, 18));
+        JButton carica = new JButton("CARICA CSV", createAdaptiveIcon("icons/caricaCSV.svg", 18, 18));
         carica.setFont(new Font("SansSerif", Font.BOLD, 14));
         carica.setIconTextGap(10);
         carica.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        carica.putClientProperty("FlatLaf.style",
-                "arc: 12; " +
-                        "margin: 10,20,10,20; " +
-                        "borderWidth: 1; " +
-                        "focusWidth: 0");
+        carica.putClientProperty("FlatLaf.style", "arc: 12; margin: 10,20,10,20; borderWidth: 1; focusWidth: 0");
 
         JPanel p3Actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         p3Actions.setOpaque(false);
@@ -162,9 +147,6 @@ public class HomeWindow extends JFrame {
         p3Actions.add(cerca);
         p3Actions.add(carica);
 
-        // ====================================================
-        // STRUTTURA E DISPOSIZIONE LAYOUT
-        // ====================================================
         mainPanel.add(headerPanel);
         mainPanel.add(Box.createVerticalStrut(25));
 
@@ -181,7 +163,6 @@ public class HomeWindow extends JFrame {
         mainPanel.add(Box.createVerticalGlue());
         mainPanel.add(p3Actions);
 
-        // Gestione visibilità selezione
         classi.addActionListener(e -> {
             l2.setVisible(true);
             cardPlesso.setVisible(true);
@@ -218,7 +199,6 @@ public class HomeWindow extends JFrame {
             }
         });
 
-        // Applica gli stili dinamici per i colori in base al tema attivo
         applyThemeStyles();
 
         setSize(700, 420);
@@ -227,9 +207,6 @@ public class HomeWindow extends JFrame {
         setVisible(true);
     }
 
-    /**
-     * Contenitore principale per le opzioni.
-     */
     private JPanel createCardContainer(JComponent content) {
         JPanel card = new JPanel(new GridBagLayout());
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
@@ -237,11 +214,8 @@ public class HomeWindow extends JFrame {
         return card;
     }
 
-    /**
-     * Toggle button integrato senza bordi visibili.
-     */
     private JToggleButton createSeamlessToggle(String text, String iconPath) {
-        JToggleButton btn = new JToggleButton(text, new FlatSVGIcon(iconPath, 20, 20));
+        JToggleButton btn = new JToggleButton(text, createAdaptiveIcon(iconPath, 20, 20));
         btn.setFont(new Font("SansSerif", Font.BOLD, 14));
         btn.setIconTextGap(10);
         btn.setFocusPainted(false);
@@ -251,13 +225,21 @@ public class HomeWindow extends JFrame {
         return btn;
     }
 
-    /**
-     * Aggiorna lo stile dinamico dei contenitori e dei pulsanti quando cambia il tema.
-     */
+    private FlatSVGIcon createAdaptiveIcon(String path, int width, int height) {
+        FlatSVGIcon icon = new FlatSVGIcon(path, width, height);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> UIManager.getColor("Label.foreground")));
+        return icon;
+    }
+
+    private FlatSVGIcon createWhiteIcon(String path, int width, int height) {
+        FlatSVGIcon icon = new FlatSVGIcon(path, width, height);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> Color.WHITE));
+        return icon;
+    }
+
     private void applyThemeStyles() {
         boolean isDark = FlatLaf.isLafDark();
 
-        // Grigio scuro (#2b2b2e) per tema Dark, grigio visibile (#d8d8de) per tema Light
         String bgHex = isDark ? "#2b2b2e" : "#d8d8de";
         String borderHex = isDark ? "#3a3a3d" : "#c2c2c8";
         String cardStyle = "arc: 16; background: " + bgHex + "; borderWidth: 1; borderColor: " + borderHex;
@@ -265,7 +247,6 @@ public class HomeWindow extends JFrame {
         if (cardConsultazione != null) cardConsultazione.putClientProperty("FlatLaf.style", cardStyle);
         if (cardPlesso != null) cardPlesso.putClientProperty("FlatLaf.style", cardStyle);
 
-        // Sfondo evidenziato per il pulsante selezionato
         String selectedBgHex = isDark ? "#3b3b3f" : "#c5c5cb";
         String toggleStyle = "arc: 12; margin: 8,18,8,18; borderWidth: 0; focusWidth: 0; innerFocusWidth: 0; " +
                 "background: transparent; borderColor: transparent; focusedBorderColor: transparent; " +
@@ -277,19 +258,16 @@ public class HomeWindow extends JFrame {
         if (romegialli != null) romegialli.putClientProperty("FlatLaf.style", toggleStyle);
     }
 
-    /**
-     * Alterna il tema chiaro/scuro e riaggiorna l'interfaccia.
-     */
     private void toggleTheme() {
         try {
             if (FlatLaf.isLafDark()) {
                 UIManager.setLookAndFeel(new FlatLightLaf());
                 btnTema.setText("Scuro");
-                btnTema.setIcon(new FlatSVGIcon("icons/moon.svg", 18, 18));
+                btnTema.setIcon(createAdaptiveIcon("icons/moon.svg", 18, 18));
             } else {
                 UIManager.setLookAndFeel(new FlatDarkLaf());
                 btnTema.setText("Chiaro");
-                btnTema.setIcon(new FlatSVGIcon("icons/sun.svg", 18, 18));
+                btnTema.setIcon(createAdaptiveIcon("icons/sun.svg", 18, 18));
             }
             applyThemeStyles();
             FlatLaf.updateUI();

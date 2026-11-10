@@ -4,18 +4,25 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.quaini_rubini_dellamina.backend.entità.Docente;
 import com.quaini_rubini_dellamina.backend.entità.Giorni;
 import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
+import com.quaini_rubini_dellamina.backend.io.ReadCsv;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 public class ProfessoreOrario extends JFrame {
     private final JLabel lblInfoBottom;
     private final JButton btnTema;
+    private final JComboBox<String> comboProf;
 
     public ProfessoreOrario() {
         super("Orario Professori - Istituto Saraceno Romegialli");
@@ -38,13 +45,11 @@ public class ProfessoreOrario extends JFrame {
         // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
 
-        JLabel lblTitle = new JLabel("Orario Professori", new FlatSVGIcon("icons/user.svg", 22, 22), JLabel.CENTER);
+        JLabel lblTitle = new JLabel("Orario Professori", createAdaptiveIcon("icons/user.svg", 22, 22), JLabel.CENTER);
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
 
-        // Bottone cambio tema stile pillola
         boolean isDark = FlatLaf.isLafDark();
-        btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
-                new FlatSVGIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
+        btnTema = new JButton(isDark ? "Chiaro" : "Scuro", createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
         btnTema.setFont(fontButton);
         btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnTema.putClientProperty("FlatLaf.style", "arc: 999; margin: 8,16,8,16; borderWidth: 1");
@@ -53,20 +58,19 @@ public class ProfessoreOrario extends JFrame {
         headerPanel.add(lblTitle, BorderLayout.CENTER);
         headerPanel.add(btnTema, BorderLayout.EAST);
 
-        // Componenti selezione professore
         JLabel labelProf = new JLabel("Professore:");
         labelProf.setFont(fontLabel);
 
-        String[] professori = {"BARINI", "ROSSI", "BIANCHI", "VERDI"};
-        JComboBox<String> comboProf = new JComboBox<>(professori);
-        comboProf.setPreferredSize(new Dimension(160, 32));
+        // Caricamento dinamico dei docenti dal file CSV tramite ReadCsv.getAllDocenti()
+        String[] professori = caricaDocentiDaCSV();
+        comboProf = new JComboBox<>(professori);
+        comboProf.setPreferredSize(new Dimension(200, 32));
 
-        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO", new FlatSVGIcon("icons/lens.svg", 16, 16));
+        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO", createWhiteIcon("icons/lens.svg", 16, 16));
         btnVisualizza.setFont(fontButton);
         btnVisualizza.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnVisualizza.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
 
-        // Layout dei filtri (Senza card container)
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         filterPanel.add(labelProf);
         filterPanel.add(comboProf);
@@ -126,7 +130,7 @@ public class ProfessoreOrario extends JFrame {
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
         JPanel leftBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        JButton btnIndietro = new JButton("Torna Indietro", new FlatSVGIcon("icons/arrow.svg", 16, 16));
+        JButton btnIndietro = new JButton("Torna Indietro", createAdaptiveIcon("icons/arrow.svg", 16, 16));
         btnIndietro.setFont(fontButton);
         btnIndietro.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnIndietro.putClientProperty("FlatLaf.style", "arc: 10; margin: 8,15,8,15");
@@ -139,8 +143,8 @@ public class ProfessoreOrario extends JFrame {
         leftBottomPanel.add(lblInfoBottom);
 
         JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        JButton btnPdf = new JButton("SALVA PDF", new FlatSVGIcon("icons/pdfSave.svg", 16, 16));
-        JButton btnCsv = new JButton("SALVA CSV", new FlatSVGIcon("icons/csvSave.svg", 16, 16));
+        JButton btnPdf = new JButton("SALVA PDF", createWhiteIcon("icons/pdfSave.svg", 16, 16));
+        JButton btnCsv = new JButton("SALVA CSV", createWhiteIcon("icons/csvSave.svg", 16, 16));
 
         btnPdf.setFont(fontButton);
         btnCsv.setFont(fontButton);
@@ -163,8 +167,10 @@ public class ProfessoreOrario extends JFrame {
         });
 
         btnVisualizza.addActionListener(e -> {
-            String LettoProf = comboProf.getSelectedItem().toString();
-            lblInfoBottom.setText("Professore: " + LettoProf + " • Orario generato");
+            if (comboProf.getSelectedItem() != null) {
+                String LettoProf = comboProf.getSelectedItem().toString();
+                lblInfoBottom.setText("Professore: " + LettoProf + " • Orario generato");
+            }
         });
 
         setSize(950, 650);
@@ -173,16 +179,49 @@ public class ProfessoreOrario extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * Utilizza la classe ReadCsv per caricare tutti i docenti univoci tramite getAllDocenti().
+     */
+    private String[] caricaDocentiDaCSV() {
+        ReadCsv reader = new ReadCsv();
+        try {
+            HashSet<Docente> setDocenti = reader.getAllDocenti();
+            List<String> nomiDocenti = new ArrayList<>();
+            for (Docente d : setDocenti) {
+                if (d != null && d.getNome() != null && !d.getNome().isEmpty()) {
+                    nomiDocenti.add(d.getNome());
+                }
+            }
+            Collections.sort(nomiDocenti);
+            return nomiDocenti.toArray(new String[0]);
+        } catch (Exception e) {
+            System.err.println("Errore nel caricamento dei docenti dal CSV: " + e.getMessage());
+            return new String[]{"Nessun docente trovato"};
+        }
+    }
+
+    private FlatSVGIcon createAdaptiveIcon(String path, int width, int height) {
+        FlatSVGIcon icon = new FlatSVGIcon(path, width, height);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> UIManager.getColor("Label.foreground")));
+        return icon;
+    }
+
+    private FlatSVGIcon createWhiteIcon(String path, int width, int height) {
+        FlatSVGIcon icon = new FlatSVGIcon(path, width, height);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> Color.WHITE));
+        return icon;
+    }
+
     private void toggleTheme() {
         try {
             if (FlatLaf.isLafDark()) {
                 UIManager.setLookAndFeel(new FlatLightLaf());
                 btnTema.setText("Scuro");
-                btnTema.setIcon(new FlatSVGIcon("icons/moon.svg", 18, 18));
+                btnTema.setIcon(createAdaptiveIcon("icons/moon.svg", 18, 18));
             } else {
                 UIManager.setLookAndFeel(new FlatDarkLaf());
                 btnTema.setText("Chiaro");
-                btnTema.setIcon(new FlatSVGIcon("icons/sun.svg", 18, 18));
+                btnTema.setIcon(createAdaptiveIcon("icons/sun.svg", 18, 18));
             }
             FlatLaf.updateUI();
         } catch (Exception ex) {
