@@ -1,6 +1,11 @@
 package com.quaini_rubini_dellamina.frontend;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.quaini_rubini_dellamina.backend.entità.Giorni;
+import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,76 +14,90 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
 public class ProfessoreOrario extends JFrame {
+    private final JLabel lblInfoBottom;
+    private final JButton btnTema;
+
     public ProfessoreOrario() {
-        super("ORARIO PROFESSORI SARACENO");
+        super("Orario Professori - Istituto Saraceno Romegialli");
 
+        getRootPane().putClientProperty("JRootPane.style", "arc: 18");
 
-        // Arrotonda gli angoli della finestra
-        getRootPane().putClientProperty("JRootPane.style", "arc: 20");
-
-
-        // Layout principale a zone (North, Center, South) con margini
         JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
         mainPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
         setContentPane(mainPanel);
 
-
-        // Font definitiì
-        Font fontLabel = new Font("Serif", Font.BOLD, 16);
-        Font fontButton = new Font("Serif", Font.BOLD, 14);
-
+        Font fontLabel = new Font("SansSerif", Font.BOLD, 14);
+        Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
         // ====================================================
-        // 1. ZONA NORD: Selezione Professore + Tasto Conferma
+        // ZONA NORD: HEADER + FILTRO PROFESSORE
         // ====================================================
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
 
-        // Riga della JComboBox
-        JPanel selectionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
-        JLabel labelProf = new JLabel("SELEZIONA PROFESSORE");
+        JLabel lblTitle = new JLabel("Orario Professori", new FlatSVGIcon("icons/user.svg", 22, 22), JLabel.CENTER);
+        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
+
+        // Bottone cambio tema stile pillola
+        boolean isDark = FlatLaf.isLafDark();
+        btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
+                new FlatSVGIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
+        btnTema.setFont(fontButton);
+        btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnTema.putClientProperty("FlatLaf.style", "arc: 999; margin: 8,16,8,16; borderWidth: 1");
+        btnTema.addActionListener(e -> toggleTheme());
+
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
+        headerPanel.add(btnTema, BorderLayout.EAST);
+
+        // Componenti selezione professore
+        JLabel labelProf = new JLabel("Professore:");
         labelProf.setFont(fontLabel);
-
 
         String[] professori = {"BARINI", "ROSSI", "BIANCHI", "VERDI"};
         JComboBox<String> comboProf = new JComboBox<>(professori);
-        comboProf.setFont(fontLabel);
         comboProf.setPreferredSize(new Dimension(160, 32));
 
-
-        selectionPanel.add(labelProf);
-        selectionPanel.add(comboProf);
-
-
-        // Pulsante CONFERMA
-        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO");
+        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO", new FlatSVGIcon("icons/lens.svg", 16, 16));
         btnVisualizza.setFont(fontButton);
-        btnVisualizza.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnVisualizza.putClientProperty("FlatLaf.style", "arc: 12; margin: 10,30,10,30");
+        btnVisualizza.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnVisualizza.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
 
+        // Layout dei filtri (Senza card container)
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
+        filterPanel.add(labelProf);
+        filterPanel.add(comboProf);
+        filterPanel.add(btnVisualizza);
 
-        topPanel.add(selectionPanel);
-        topPanel.add(Box.createVerticalStrut(8));
-        topPanel.add(btnVisualizza);
+        JPanel formPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        formPanel.add(filterPanel);
 
-
+        topPanel.add(headerPanel);
+        topPanel.add(Box.createVerticalStrut(10));
+        topPanel.add(formPanel);
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-
         // ====================================================
-        // 2. ZONA CENTRO: La tabella JTable
+        // ZONA CENTRO: TABELLA ORARIO PROFESSORE
         // ====================================================
-        String[] columnNames = {"ORE", "LUNEDÌ", "MARTEDÌ", "MERCOLEDÌ", "GIOVEDÌ", "VENERDÌ"};
-        Object[][] data = {
-                {"8-9", "", "", "", "", ""},
-                {"9-10", "", "", "", "", ""},
-                {"10-11", "", "", "", "", ""},
-                {"11-12", "", "", "", "", ""},
-                {"12-13", "", "", "", "", ""},
-                {"13-14", "", "", "", "", ""}
-        };
+        Giorni[] giorniValues = Giorni.values();
+        String[] columnNames = new String[giorniValues.length + 1];
+        columnNames[0] = "ORE";
+        for (int i = 0; i < giorniValues.length; i++) {
+            columnNames[i + 1] = giorniValues[i].getNome().toUpperCase();
+        }
 
+        OrarioLezioni[] orariValues = OrarioLezioni.values();
+        Object[][] data = new Object[orariValues.length][columnNames.length];
+        for (int i = 0; i < orariValues.length; i++) {
+            data[i][0] = orariValues[i].getNome();
+            for (int j = 1; j < columnNames.length; j++) {
+                data[i][j] = "";
+            }
+        }
 
         DefaultTableModel tableModel = new DefaultTableModel(data, columnNames) {
             @Override
@@ -87,13 +106,11 @@ public class ProfessoreOrario extends JFrame {
             }
         };
 
-
         JTable table = new JTable(tableModel);
-        table.setRowHeight(32);
-        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        table.getTableHeader().setFont(new Font("Serif", Font.BOLD, 14));
+        table.setRowHeight(55);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
-
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
@@ -101,62 +118,75 @@ public class ProfessoreOrario extends JFrame {
             table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
 
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-
+        mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // ====================================================
-        // 3. ZONA SUD: Pulsanti di gestione
+        // ZONA SUD: PULSANTI E LABEL INFORMATIVA
         // ====================================================
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
-
-        // Pulsante a sinistra
-        JButton btnIndietro = new JButton("TORNA INDIETRO");
+        JPanel leftBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JButton btnIndietro = new JButton("Torna Indietro", new FlatSVGIcon("icons/arrow.svg", 16, 16));
         btnIndietro.setFont(fontButton);
-        btnIndietro.putClientProperty("FlatLaf.style", "arc: 12; margin: 6,15,6,15");
+        btnIndietro.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnIndietro.putClientProperty("FlatLaf.style", "arc: 10; margin: 8,15,8,15");
 
+        lblInfoBottom = new JLabel("Seleziona un professore per caricare l'orario");
+        lblInfoBottom.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        // Pulsanti a destra
+        leftBottomPanel.add(btnIndietro);
+        leftBottomPanel.add(Box.createHorizontalStrut(10));
+        leftBottomPanel.add(lblInfoBottom);
+
         JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        JButton btnPdf = new JButton("SALVA PDF");
-        JButton btnCsv = new JButton("SALVA CSV");
-
+        JButton btnPdf = new JButton("SALVA PDF", new FlatSVGIcon("icons/pdfSave.svg", 16, 16));
+        JButton btnCsv = new JButton("SALVA CSV", new FlatSVGIcon("icons/csvSave.svg", 16, 16));
 
         btnPdf.setFont(fontButton);
         btnCsv.setFont(fontButton);
-        btnPdf.putClientProperty("FlatLaf.style", "arc: 12; margin: 6,15,6,15");
-        btnCsv.putClientProperty("FlatLaf.style", "arc: 12; margin: 6,15,6,15");
-
+        btnPdf.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnCsv.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnPdf.putClientProperty("FlatLaf.style", "background: #198754; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
+        btnCsv.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
 
         rightButtonsPanel.add(btnPdf);
         rightButtonsPanel.add(btnCsv);
 
-
-        bottomPanel.add(btnIndietro, BorderLayout.WEST);
+        bottomPanel.add(leftBottomPanel, BorderLayout.WEST);
         bottomPanel.add(rightButtonsPanel, BorderLayout.EAST);
-
 
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-
-
-
         btnIndietro.addActionListener(e -> {
-            SwingUtilities.invokeLater(com.quaini_rubini_dellamina.frontend.HomeWindow::new);
-            setVisible(false);
+            SwingUtilities.invokeLater(HomeWindow::new);
+            dispose();
         });
-
 
         btnVisualizza.addActionListener(e -> {
             String LettoProf = comboProf.getSelectedItem().toString();
+            lblInfoBottom.setText("Professore: " + LettoProf + " • Orario generato");
         });
 
-
-        setSize(720, 450);
+        setSize(950, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
+    }
+
+    private void toggleTheme() {
+        try {
+            if (FlatLaf.isLafDark()) {
+                UIManager.setLookAndFeel(new FlatLightLaf());
+                btnTema.setText("Scuro");
+                btnTema.setIcon(new FlatSVGIcon("icons/moon.svg", 18, 18));
+            } else {
+                UIManager.setLookAndFeel(new FlatDarkLaf());
+                btnTema.setText("Chiaro");
+                btnTema.setIcon(new FlatSVGIcon("icons/sun.svg", 18, 18));
+            }
+            FlatLaf.updateUI();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 }
