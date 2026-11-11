@@ -11,6 +11,7 @@ import java.awt.*;
 
 public class Main {
     public static void main(String[] args) {
+        System.setProperty("flatlaf.logLevel", "off");
         FlatDarculaLaf.setup();
         SwingUtilities.invokeLater(HomeWindow::new);
     }

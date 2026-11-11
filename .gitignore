@@ -39,3 +39,5 @@ build/
 .DS_Store
 .idea
 .openidea
+DOCUMENTAZIONE_TESTING_ALGORITMO.md
+src/test/java/com/quaini_rubini_dellamina/backend/algoritmo/GenOrarioTest.java

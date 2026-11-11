@@ -4,6 +4,7 @@ import com.opencsv.exceptions.CsvValidationException;
 import com.quaini_rubini_dellamina.backend.entità.*;
 import com.quaini_rubini_dellamina.backend.io.BuildCsv;
 import com.quaini_rubini_dellamina.backend.io.ReadCsv;
+import com.quaini_rubini_dellamina.backend.io.TabellaOrsonPDF;
 
 import java.io.IOException;
 import java.util.*;
@@ -127,7 +128,7 @@ public class GenOrario {
         return slots;
     }
 
-    private List<int[]> getSlotLiberi(boolean[][] occupato, String nomeDocente, Random rnd) {
+    protected List<int[]> getSlotLiberi(boolean[][] occupato, String nomeDocente, Random rnd) {
         List<int[]> liberi = new ArrayList<>();
         for (int g = 0; g < GIORNI; g++) {
             for (int o = 0; o < ORE; o++) {
@@ -135,8 +136,17 @@ public class GenOrario {
                     liberi.add(new int[]{g, o});
             }
         }
-        Collections.shuffle(liberi, rnd);//ordine causuale
+        Collections.shuffle(liberi, rnd); // ordine casuale base
+        ordinaSlotLiberi(liberi, nomeDocente);
         return liberi;
+    }
+
+    protected void ordinaSlotLiberi(List<int[]> liberi, String nomeDocente) {
+
+    }
+
+    public Set<String> getDocentiUsati() {
+        return Collections.unmodifiableSet(docentiUsati);
     }
 
     //controlla che il docente non sia accupato in un altra classe
@@ -191,8 +201,10 @@ public class GenOrario {
         ReadCsv r = new ReadCsv();
         List<Lezione> lessons = r.leggi();
         GenOrarioVincoli generatore = new GenOrarioVincoli();
-        generatore.generaIstituto(r, lessons, "/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut");
+        Istituto isty = generatore.generaIstituto(r, lessons, "/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut");
 
+
+        TabellaOrsonPDF.creaPDF(isty.getClassi_tabelleh().get("5A-INFO"), true);
 //        Map<String, ArrayList<Slot>> mappa = school.getClassi_tabelleh();
 //        for (String chiave : mappa.keySet())
 //            System.out.println("key: " + chiave + " value: " + mappa.get(chiave));

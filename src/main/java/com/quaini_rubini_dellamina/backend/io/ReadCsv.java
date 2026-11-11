@@ -15,6 +15,9 @@ public class ReadCsv {
             "src/main/java/com/quaini_rubini_dellamina/source.csv";
 
     private final String filepath;
+    private HashSet<Classe> classi = new HashSet<>();
+    private HashSet<Docente> docenti = new HashSet<>();
+
 
 
     public ReadCsv() {
@@ -67,16 +70,18 @@ public class ReadCsv {
 
 
     public HashSet<Classe> getAllClassi() throws CsvValidationException, IOException {
-        HashSet<Classe> classi = new HashSet<>();
-        for (Lezione lezione : leggi())
-            classi.add(lezione.getClasse());
+        if(classi.isEmpty()) {
+            for (Lezione lezione : leggi())
+                classi.add(lezione.getClasse());
+        }
         return classi;
     } //restituisce in modo univoco le classi
 
     public HashSet<Docente> getAllDocenti() throws CsvValidationException, IOException {
-        HashSet<Docente> docenti = new HashSet<>();
-        for (Lezione lezione : leggi())
-            docenti.add(lezione.getDocente());
+        if(docenti.isEmpty()) {
+            for (Lezione lezione : leggi())
+                docenti.add(lezione.getDocente());
+        }
         return docenti;
     } //restituisce in modo univoco i docenti
 

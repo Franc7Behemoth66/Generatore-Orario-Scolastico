@@ -3,6 +3,7 @@ package com.quaini_rubini_dellamina.backend.io;
 import com.opencsv.CSVWriter;
 import com.quaini_rubini_dellamina.backend.entità.*;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,17 +35,37 @@ public class BuildCsv {
                     griglia[g][o] = l.getClasse().getChiave();
             }
         }
-        String nomeORClasse;
-        if (isClasse) {
-            nomeORClasse = slotAssegnati.getFirst().getLezione().getClasse().getChiave();
-            outputPath = outputPath + "/" +nomeORClasse + ".csv";
-        }
-        else {
-            nomeORClasse = slotAssegnati.getFirst().getLezione().getDocente().getNome();
-            outputPath = outputPath  + "/" + nomeORClasse + ".csv";
+        if (slotAssegnati == null || slotAssegnati.isEmpty()) {
+            return;
         }
 
-        try (CSVWriter writer = new CSVWriter(new FileWriter(outputPath))) {
+        Slot primoValido = null;
+        for (Slot s : slotAssegnati) {
+            if (s != null && !s.isVuoto() && s.getLezione() != null) {
+                primoValido = s;
+                break;
+            }
+        }
+        if (primoValido == null) {
+            return;
+        }
+
+        String nomeORClasse;
+        if (isClasse) {
+            nomeORClasse = primoValido.getLezione().getClasse().getChiave();
+            outputPath = outputPath + "/" + nomeORClasse + ".csv";
+        } else {
+            nomeORClasse = primoValido.getLezione().getDocente().getNome();
+            outputPath = outputPath + "/" + nomeORClasse + ".csv";
+        }
+
+        File targetFile = new File(outputPath);
+        File dir = targetFile.getParentFile();
+        if (dir != null && !dir.exists()) {
+            dir.mkdirs();
+        }
+
+        try (CSVWriter writer = new CSVWriter(new FileWriter(targetFile))) {
             // Intestazione
             writer.writeNext(new String[]{
                 "Ora",

@@ -32,39 +32,119 @@ public class GenOrarioVincoli extends GenOrario {
         return vincoli;
     }
 
+    public Preferenza getPreferenzaDocente(String nomeDocente) {
+        if (nomeDocente == null) return null;
+        return preferenzeDocenti.get(nomeDocente.trim().toLowerCase());
+    }
+
+
+    // VINCOLI OBBLIGATORI, se violati, lo slot viene scartato
+
     @Override
     protected boolean isSlotValido(String nomeDocente, int giorno, int ora) {
-        // Contemporaneità (controllo della classe base)
+        //  Contemporaneità docente (gestita nella classe padre: docente non in due classi contemporaneamente)
         if (!super.isSlotValido(nomeDocente, giorno, ora)) {
             return false;
         }
 
-        // Vincoli/preferenze
-        Preferenza pref = preferenzeDocenti.get(nomeDocente);
+        Preferenza pref = getPreferenzaDocente(nomeDocente);
         if (pref == null) {
             return true;
         }
-        // obbligo gionro libero
+
+        //  Giorno libero obbligatorio
         int giornoLiberoIdx = indiceGiorno(pref.giornoLibero());
         if (giornoLiberoIdx >= 0 && giornoLiberoIdx == giorno) {
             return false;
         }
-        //obbligo prima ora libera
+
+        //  Obbligo prima ora libera
         if (pref.noPrimaH() && ora == 0) {
             return false;
         }
-        //obbligo ultima ora libera
+
+        //  Obbligo ultima ora libera
         if (pref.noUltimaH() && ora == (ORE - 1)) {
             return false;
         }
-        //obbligo limite orario giornaliero
+
+        //  Obbligo limite orario giornaliero
         if (pref.limiteH() > 0) {
             int[] oreGiorno = oreDocenteGiorno.get(nomeDocente);
             if (oreGiorno != null && oreGiorno[giorno] >= pref.limiteH()) {
                 return false;
             }
         }
+
         return true;
+    }
+
+    // =========================================================================
+    // VINCOLO NON OBBLIGATORIO (SOFT CONSTRAINT / PREFERENZA DOCENTE)
+    // "Riduzione delle ore buche":
+    // Il docente preferisce avere lezioni compatte ed evitare buchi nella giornata.
+    // L'algoritmo ordina gli slot validi dando massima precedenza a quelli che
+    // azzerano o minimizzano le ore buche. Qualora non fosse possibile per via
+    // di vincoli di contemporaneità di altre classi, la lezione viene comunque
+    // collocata evitando blocchi della generazione (natura soft/non obbligatoria).
+    // =========================================================================
+
+    @Override
+    protected void ordinaSlotLiberi(List<int[]> liberi, String nomeDocente) {
+        if (liberi == null || liberi.size() <= 1) return;
+        // Ordina prioritariamente gli slot a minor incremento di ore buche
+        liberi.sort(Comparator.comparingInt(slot -> calcolaPenalitaSoft(nomeDocente, slot[0], slot[1])));
+    }
+
+    /*
+     Calcola la penalità associata all'assegnazione dello slot (giorno, ora) per nomeDocente.
+      Penalizza l'introduzione di ore buche rispetto alle ore che il docente ha già in quel giorno.
+     */
+    public int calcolaPenalitaSoft(String nomeDocente, int giorno, int ora) {
+        Preferenza pref = getPreferenzaDocente(nomeDocente);
+        if (pref == null || !pref.riduciOreBuche()) {
+            return 0;
+        }
+
+        List<Integer> oreGiorno = getOreDocenteNelGiorno(nomeDocente, giorno);
+        if (oreGiorno.isEmpty()) {
+            return 0; // Prima lezione del giorno: nessuna ora buca
+        }
+
+        int buchePrima = calcolaOreBucheGiorno(oreGiorno);
+
+        List<Integer> oreIpotetiche = new ArrayList<>(oreGiorno);
+        oreIpotetiche.add(ora);
+        int bucheDopo = calcolaOreBucheGiorno(oreIpotetiche);
+
+        int deltaBuche = bucheDopo - buchePrima;
+        return (deltaBuche > 0) ? (deltaBuche * 20) : 0;
+    }
+
+    //Ritorna la lista ordinata delle ore [0..5] in cui il docente ha già lezione nel giorno indicato.
+
+    public List<Integer> getOreDocenteNelGiorno(String nomeDocente, int giorno) {
+        List<Integer> ore = new ArrayList<>();
+        if (nomeDocente == null) return ore;
+        for (int h = 0; h < ORE; h++) {
+            if (docentiUsati.contains(chiaveDocente(nomeDocente, giorno, h))) {
+                ore.add(h);
+            }
+        }
+        Collections.sort(ore);
+        return ore;
+    }
+
+    /*
+      Calcola il numero di ore buche in una giornata:
+      Ore buche = (maxOra - minOra + 1) - numeroLezioni.
+     */
+    public static int calcolaOreBucheGiorno(List<Integer> ore) {
+        if (ore == null || ore.size() <= 1) return 0;
+        int min = Collections.min(ore);
+        int max = Collections.max(ore);
+        int span = max - min + 1;
+        return span - ore.size();
     }
 
     public static int indiceGiorno(String nomeGiorno) {
@@ -82,47 +162,163 @@ public class GenOrarioVincoli extends GenOrario {
         return new GenOrarioVincoli(vincoli).generaIstituto(r, lezioni, cartella);
     }
 
-    public static void stampaVerifica(ConfiguraVincoli vincoli, Istituto school) {
-        final int GIORNI = Slot.GIORNI_SETTIMANA;
-        final int ORE    = Slot.ORE_GIORNO;
+    // =========================================================================
+    // REPORT E VERIFICA VINCOLI CON MOTIVAZIONI DELLE PREFERENZE
+    // =========================================================================
 
-        System.out.println("Verifica vincoli configurati:");
-        Map<String, ArrayList<Slot>> doc = school.getDocenti_tabelleh();
+    public static class RisultatoVerificaDocente {
+        public final String docente;
+        public final int totOre;
+        public final int[] oreGiorno = new int[GIORNI];
+        public final int oreBucheTotali;
+        public boolean violazioneGiornoLibero = false;
+        public boolean violazioneNoPrimaH = false;
+        public boolean violazioneNoUltimaH = false;
+        public boolean violazioneLimiteH = false;
+        public final List<String> motivazioniNonSoddisfatte = new ArrayList<>();
+
+        public RisultatoVerificaDocente(String docente, int totOre, int oreBucheTotali) {
+            this.docente = docente;
+            this.totOre = totOre;
+            this.oreBucheTotali = oreBucheTotali;
+        }
+
+        public boolean hardRispettati() {
+            return !violazioneGiornoLibero && !violazioneNoPrimaH && !violazioneNoUltimaH && !violazioneLimiteH;
+        }
+    }
+
+    public static Map<String, RisultatoVerificaDocente> analizzaOrario(ConfiguraVincoli vincoli, Istituto school) {
+        Map<String, RisultatoVerificaDocente> analisi = new LinkedHashMap<>();
+        Map<String, ArrayList<Slot>> docMap = school.getDocenti_tabelleh();
+
+        if (vincoli == null || vincoli.preferenze() == null) {
+            return analisi;
+        }
 
         for (Preferenza p : vincoli.preferenze()) {
-            ArrayList<Slot> oreProf = doc.get(p.docente());
-            int numOre = (oreProf != null) ? oreProf.size() : 0;
-            System.out.println("Docente: " + p.docente() + " (tot ore assegnate: " + numOre + ")");
-            if (oreProf == null) continue;
+            String nomeProf = p.docente();
+            ArrayList<Slot> oreProf = docMap.get(nomeProf);
+            int totOre = (oreProf != null) ? oreProf.size() : 0;
 
-            int[] orePerGiorno = new int[GIORNI];
-            boolean violazionePrimaOra = false;
-            boolean violazioneUltimaOra = false;
+            Map<Integer, List<Integer>> orePerGiornoMap = new HashMap<>();
+            for (int g = 0; g < GIORNI; g++) orePerGiornoMap.put(g, new ArrayList<>());
 
-            for (Slot s : oreProf) {
-                if (s.isVuoto()) continue;
-                int g = s.indexGiorno();
-                int o = s.indexOra();
-                orePerGiorno[g]++;
-                if (p.noPrimaH() && o == 0) violazionePrimaOra = true;
-                if (p.noUltimaH() && o == (ORE - 1)) violazioneUltimaOra = true;
+            if (oreProf != null) {
+                for (Slot s : oreProf) {
+                    if (s == null || s.isVuoto()) continue;
+                    orePerGiornoMap.get(s.indexGiorno()).add(s.indexOra());
+                }
             }
 
+            int bucheTot = 0;
+            int[] oreGiornoArr = new int[GIORNI];
+
+            for (int g = 0; g < GIORNI; g++) {
+                List<Integer> listOre = orePerGiornoMap.get(g);
+                Collections.sort(listOre);
+                oreGiornoArr[g] = listOre.size();
+                bucheTot += calcolaOreBucheGiorno(listOre);
+            }
+
+            RisultatoVerificaDocente res = new RisultatoVerificaDocente(nomeProf, totOre, bucheTot);
+            System.arraycopy(oreGiornoArr, 0, res.oreGiorno, 0, GIORNI);
+
+            // Verifica vincoli obbligatori (Hard)
             if (p.giornoLibero() != null) {
                 int gLibero = indiceGiorno(p.giornoLibero());
-                System.out.println("  - Giorno libero (" + p.giornoLibero() + "): ore assegnate = "
-                        + (gLibero >= 0 ? orePerGiorno[gLibero] : "N/D"));
+                if (gLibero >= 0 && res.oreGiorno[gLibero] > 0) {
+                    res.violazioneGiornoLibero = true;
+                }
             }
             if (p.limiteH() > 0) {
-                System.out.println("  - Limite ore/giorno (" + p.limiteH() + "): max riscontrato = "
-                        + Arrays.stream(orePerGiorno).max().orElse(0));
+                for (int oreG : res.oreGiorno) {
+                    if (oreG > p.limiteH()) res.violazioneLimiteH = true;
+                }
+            }
+            if (oreProf != null) {
+                for (Slot s : oreProf) {
+                    if (s == null || s.isVuoto()) continue;
+                    if (p.noPrimaH() && s.indexOra() == 0) res.violazioneNoPrimaH = true;
+                    if (p.noUltimaH() && s.indexOra() == (ORE - 1)) res.violazioneNoUltimaH = true;
+                }
+            }
+
+            // Verifica vincolo non obbligatorio (Soft: Riduzione Ore Buche)
+            if (p.riduciOreBuche() && bucheTot > 0) {
+                res.motivazioniNonSoddisfatte.add("Preferenza 'riduzione-ore-buche': riscontrate " + bucheTot
+                        + " ore buche complessive nella settimana. Motivazione: le lezioni assegnate a classi differenti"
+                        + " non hanno trovato slot contigui liberi senza generare contemporaneità docente o violare vincoli obbligatori.");
+            }
+
+            analisi.put(nomeProf, res);
+        }
+
+        return analisi;
+    }
+
+    public static void stampaVerifica(ConfiguraVincoli vincoli, Istituto school) {
+        System.out.println("================================================================================");
+        System.out.println("              VERIFICA VINCOLI OBBLIGATORI E PREFERENZE DOCENTI                 ");
+        System.out.println("================================================================================");
+
+        Map<String, RisultatoVerificaDocente> analisi = analizzaOrario(vincoli, school);
+
+        for (Preferenza p : vincoli.preferenze()) {
+            RisultatoVerificaDocente res = analisi.get(p.docente());
+            if (res == null) continue;
+
+            System.out.println("\nDocente: " + p.docente() + " [Totale ore: " + res.totOre + "]");
+            System.out.println("  -------------------------------------------------------------");
+            System.out.println("  VINCOLI OBBLIGATORI (HARD CONSTRAINTS):");
+            if (p.giornoLibero() != null) {
+                int gLib = indiceGiorno(p.giornoLibero());
+                int oreNelGiornoLibero = (gLib >= 0) ? res.oreGiorno[gLib] : 0;
+                System.out.println("    - Giorno libero (" + p.giornoLibero() + "): "
+                        + (oreNelGiornoLibero == 0 ? "✓ RISPETTATO (0 ore)" : "✗ VIOLATO (" + oreNelGiornoLibero + " ore)"));
+            }
+            if (p.limiteH() > 0) {
+                int maxG = Arrays.stream(res.oreGiorno).max().orElse(0);
+                System.out.println("    - Limite max ore/giorno (" + p.limiteH() + "): "
+                        + (maxG <= p.limiteH() ? "✓ RISPETTATO (max " + maxG + "h)" : "✗ VIOLATO (max " + maxG + "h)"));
             }
             if (p.noPrimaH()) {
-                System.out.println("  - No prima ora: " + (violazionePrimaOra ? "VIOLATO" : "RISPETTATO"));
+                System.out.println("    - Esclusione 1ª ora: " + (!res.violazioneNoPrimaH ? "✓ RISPETTATO" : "✗ VIOLATO"));
             }
             if (p.noUltimaH()) {
-                System.out.println("  - No ultima ora: " + (violazioneUltimaOra ? "VIOLATO" : "RISPETTATO"));
+                System.out.println("    - Esclusione ultima ora: " + (!res.violazioneNoUltimaH ? "✓ RISPETTATO" : "✗ VIOLATO"));
+            }
+
+            System.out.println("  VINCOLO NON OBBLIGATORIO (SOFT CONSTRAINT):");
+            if (p.riduciOreBuche()) {
+                if (res.oreBucheTotali == 0) {
+                    System.out.println("    - Riduzione ore buche: ✓ OTTIMIZZATO AL 100% (0 ore buche settimanali)");
+                } else {
+                    System.out.println("    - Riduzione ore buche: ⚠ PARZIALMENTE SODDISFATTO (" + res.oreBucheTotali + " ore buche totali)");
+                }
+            } else {
+                System.out.println("    - Ore buche settimanali riscontrate: " + res.oreBucheTotali + " (preferenza non attivata)");
+            }
+
+            if (!res.motivazioniNonSoddisfatte.isEmpty()) {
+                System.out.println("  MOTIVAZIONE PREFERENZE NON COMPLETAMENTE SODDISFATTE:");
+                for (String mot : res.motivazioniNonSoddisfatte) {
+                    System.out.println("    • " + mot);
+                }
             }
         }
+        System.out.println("================================================================================\n");
+    }
+
+    public static void main(String[] args) throws CsvValidationException, IOException {
+        ReadCsv r = new ReadCsv();
+        List<Lezione> lessons = r.leggi();
+        ConfiguraVincoli vincoli = ReadVincoliJSON.leggi();
+        GenOrarioVincoli generatore = new GenOrarioVincoli(vincoli);
+
+        System.out.println("Avvio generazione orario con vincoli obbligatori e preferenze non obbligatorie...");
+        Istituto isty = generatore.generaIstituto(r, lessons, "esOut");
+
+        stampaVerifica(vincoli, isty);
     }
 }

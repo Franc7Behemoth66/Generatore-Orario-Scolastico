@@ -1,21 +1,28 @@
 {
-"nome-scuola": "Saraceno-Romegialli",
-"preferenze": [
-  {
-    "docente": "Bongini Claudio",
-    "giorno-libero": "Lunedì"
-  },
-  {
-    "docente": "Manni Massimiliano",
-    "giorno-libero" : "Venerdì",
-    "limite-h-giornaliere" : "3"
-  },
-  {
-    "docente": "Del Nero Davide",
-    "giorno-libero" : "Mercoledì",
-    "limite-h-giornaliere" : "3",
-    "no-ultima-h" : "true",
-    "no-prima-h" : "true"
-  }
-]
+  "nome-scuola": "Saraceno-Romegialli",
+  "preferenze": [
+    {
+      "docente": "Bongini Claudio",
+      "giorno-libero": "Lunedì",
+      "riduci-ore-buche": true
+    },
+    {
+      "docente": "Manni Massimiliano",
+      "giorno-libero": "Venerdì",
+      "limite-h-giornaliere": 3,
+      "riduci-ore-buche": true
+    },
+    {
+      "docente": "Del Nero Davide",
+      "giorno-libero": "Mercoledì",
+      "limite-h-giornaliere": 3,
+      "no-ultima-h": true,
+      "no-prima-h": true,
+      "riduci-ore-buche": true
+    },
+    {
+      "docente": "Acquistapace Elisa",
+      "riduci-ore-buche": true
+    }
+  ]
 }
