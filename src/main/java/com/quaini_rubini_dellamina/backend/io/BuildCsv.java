@@ -3,6 +3,7 @@ package com.quaini_rubini_dellamina.backend.io;
 import com.opencsv.CSVWriter;
 import com.quaini_rubini_dellamina.backend.entità.*;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -85,11 +86,23 @@ public class BuildCsv {
                 }
                 writer.writeNext(riga);
             }
+            apriPDF(targetFile);
         }
     }
 
     public static void scriviOrario(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
         scriviOrario(slotAssegnati, DEFAULT_OUTPUT_PATH, isClasse);
+    }
+
+    private static void apriPDF(File file) {
+        if (!Desktop.isDesktopSupported()) return;
+        Desktop desktop = Desktop.getDesktop();
+        if (!desktop.isSupported(Desktop.Action.OPEN)) return;
+        try {
+            desktop.open(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
 

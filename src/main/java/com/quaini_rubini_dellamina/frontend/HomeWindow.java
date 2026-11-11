@@ -4,16 +4,21 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.quaini_rubini_dellamina.backend.OrarioManager;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
 
 public class HomeWindow extends JFrame {
+
     private final JButton btnTema;
     private final JLabel l2;
+    private final JLabel lblStats;
     private final JPanel cardConsultazione;
     private final JPanel cardPlesso;
     private final JToggleButton professori;
@@ -47,9 +52,10 @@ public class HomeWindow extends JFrame {
         lblSubtitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
         lblSubtitle.setForeground(new Color(160, 160, 160));
 
-        JLabel lblStats = new JLabel("✓ Dataset attivo: 679 lezioni • 52 classi • 129 docenti");
+        // Label stats aggiornata dinamicamente dal backend
+        lblStats = new JLabel();
         lblStats.setFont(new Font("SansSerif", Font.BOLD, 13));
-        lblStats.setForeground(new Color(40, 167, 69));
+        aggiornaStats();
 
         JPanel titleBox = new JPanel();
         titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
@@ -61,7 +67,8 @@ public class HomeWindow extends JFrame {
         titleBox.add(lblStats);
 
         boolean isDark = FlatLaf.isLafDark();
-        btnTema = new JButton(isDark ? "Chiaro" : "Scuro", createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
+        btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
+                createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
         btnTema.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnTema.putClientProperty("FlatLaf.style", "arc: 999; margin: 8,16,8,16; borderWidth: 1");
@@ -129,7 +136,8 @@ public class HomeWindow extends JFrame {
         cerca.setFont(new Font("SansSerif", Font.BOLD, 14));
         cerca.setIconTextGap(10);
         cerca.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        cerca.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 12; margin: 10,22,10,22; borderWidth: 0; focusWidth: 0");
+        cerca.putClientProperty("FlatLaf.style",
+                "background: #0d6efd; foreground: #ffffff; arc: 12; margin: 10,22,10,22; borderWidth: 0; focusWidth: 0");
 
         JButton carica = new JButton("CARICA CSV", createAdaptiveIcon("icons/caricaCSV.svg", 18, 18));
         carica.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -145,20 +153,20 @@ public class HomeWindow extends JFrame {
 
         mainPanel.add(headerPanel);
         mainPanel.add(Box.createVerticalStrut(25));
-
         mainPanel.add(l1);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(cardConsultazione);
         mainPanel.add(Box.createVerticalStrut(20));
-
         mainPanel.add(l2);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(cardPlesso);
         mainPanel.add(Box.createVerticalStrut(25));
-
         mainPanel.add(Box.createVerticalGlue());
         mainPanel.add(p3Actions);
 
+        // ====================================================
+        // LISTENER – visibilità plesso
+        // ====================================================
         classi.addActionListener(e -> {
             l2.setVisible(true);
             cardPlesso.setVisible(true);
@@ -173,26 +181,79 @@ public class HomeWindow extends JFrame {
             repaint();
         });
 
+        // ====================================================
+        // LISTENER – CERCA ORARIO
+        // Verifica che il backend sia inizializzato, poi apre la finestra giusta
+        // ====================================================
         cerca.addActionListener(e -> {
+            OrarioManager mgr = OrarioManager.getInstance();
+            if (!mgr.isInizializzato()) {
+                JOptionPane.showMessageDialog(this,
+                        "Nessun dataset caricato.\nUsa il pulsante \"CARICA CSV\" prima di cercare un orario.",
+                        "Dataset mancante", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             if (professori.isSelected()) {
-                new ProfessoreOrario();
+                SwingUtilities.invokeLater(ProfessoreOrario::new);
                 dispose();
             } else if (classi.isSelected() && saraceno.isSelected()) {
-                new ClasseOrario("saraceno");
+                SwingUtilities.invokeLater(() -> new ClasseOrario("saraceno"));
                 dispose();
             } else if (classi.isSelected() && romegialli.isSelected()) {
-                new ClasseOrario("romegialli");
+                SwingUtilities.invokeLater(() -> new ClasseOrario("romegialli"));
                 dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Seleziona il tipo di orario (Professori / Classi) e, se necessario, il plesso.",
+                        "Selezione richiesta", JOptionPane.INFORMATION_MESSAGE);
             }
         });
 
+        // ====================================================
+        // LISTENER – CARICA CSV
+        // Chiede il file, rigeneera l'orario tramite OrarioManager e aggiorna la label
+        // ====================================================
         carica.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-            fileChooser.setFileFilter(new FileNameExtensionFilter("File CSV", "csv"));
-            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                System.out.println("Selezionato: " + fileChooser.getSelectedFile().getAbsolutePath());
-            }
+            fileChooser.setCurrentDirectory(new File("."));
+            fileChooser.setFileFilter(new FileNameExtensionFilter("File CSV (*.csv)", "csv"));
+            int scelta = fileChooser.showOpenDialog(this);
+            if (scelta != JFileChooser.APPROVE_OPTION) return;
+
+            String path = fileChooser.getSelectedFile().getAbsolutePath();
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            carica.setEnabled(false);
+            cerca.setEnabled(false);
+
+            // Generazione in un thread separato per non bloccare la GUI
+            new Thread(() -> {
+                try {
+                    OrarioManager.getInstance().caricaNuovoCsv(path);
+                    SwingUtilities.invokeLater(() -> {
+                        aggiornaStats();
+                        setCursor(Cursor.getDefaultCursor());
+                        carica.setEnabled(true);
+                        cerca.setEnabled(true);
+                        OrarioManager mgr = OrarioManager.getInstance();
+                        JOptionPane.showMessageDialog(this,
+                                "File CSV caricato con successo!\n"
+                                + "Orario d'istituto generato.\n\n"
+                                + "• Lezioni: " + mgr.getNumeroLezioni() + "\n"
+                                + "• Classi:  " + mgr.getNumeroClassi() + "\n"
+                                + "• Docenti: " + mgr.getNumeroDocenti(),
+                                "Caricamento completato", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                } catch (Exception ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        setCursor(Cursor.getDefaultCursor());
+                        carica.setEnabled(true);
+                        cerca.setEnabled(true);
+                        JOptionPane.showMessageDialog(this,
+                                "Errore durante l'importazione:\n" + ex.getMessage(),
+                                "Errore Caricamento", JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
         });
 
         applyThemeStyles();
@@ -201,6 +262,21 @@ public class HomeWindow extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
+    }
+
+    // ====================================================
+    // Aggiorna la label statistiche dal backend
+    // ====================================================
+    private void aggiornaStats() {
+        OrarioManager mgr = OrarioManager.getInstance();
+        if (mgr.isInizializzato()) {
+            lblStats.setText(" ✔︎ Dataset caricato: " + mgr.getNumeroLezioni() + " lezioni • "
+                    + mgr.getNumeroClassi() + " classi • " + mgr.getNumeroDocenti() + " docenti");
+            lblStats.setForeground(new Color(40, 167, 69));
+        } else {
+            lblStats.setText("⚠ Nessun dataset caricato – usa \"CARICA CSV\"");
+            lblStats.setForeground(new Color(220, 53, 69));
+        }
     }
 
     private JPanel createCardContainer(JComponent content) {
@@ -216,9 +292,6 @@ public class HomeWindow extends JFrame {
         btn.setIconTextGap(10);
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        // Ogni volta che il toggle cambia stato (selezionato/deselezionato,
-        // anche tramite ButtonGroup) aggiorno il bordo verde.
         btn.addItemListener(e -> updateToggleStyle(btn));
         return btn;
     }
@@ -235,38 +308,44 @@ public class HomeWindow extends JFrame {
         return icon;
     }
 
-    /** Applica lo stile al singolo toggle in base allo stato (selezionato o no) e al tema. */
+    // Applica lo stile al singolo toggle in base allo stato (selezionato o no) e al tema.
     private void updateToggleStyle(JToggleButton btn) {
         if (btn == null) return;
-
         boolean isDark = FlatLaf.isLafDark();
         boolean selected = btn.isSelected();
-
         String selectedBgHex = isDark ? "#3b3b3f" : "#c5c5cb";
         String bg = selected ? selectedBgHex : "#00000000";
-        String border = selected ? "#198754" : "#00000000"; // verde se selezionato, invisibile altrimenti
-
-        String style = "arc: 12; margin: 8,18,8,18; " +
-                "borderWidth: 2; borderColor: " + border + "; " +
-                "focusWidth: 0; innerFocusWidth: 0; focusedBorderColor: " + border + "; " +
-                "hoverBorderColor: " + border + "; pressedBorderColor: " + border + "; " +
-                "background: " + bg + "; selectedBackground: " + selectedBgHex + "; " +
-                "selectedForeground: $Label.foreground";
-
+        String border = selected ? "#198754" : "#00000000";
+        String style = "arc: 12; margin: 8,18,8,18; "
+                + "borderWidth: 2; borderColor: " + border + "; "
+                + "focusWidth: 0; innerFocusWidth: 0; focusedBorderColor: " + border + "; "
+                + "hoverBorderColor: " + border + "; pressedBorderColor: " + border + "; "
+                + "background: " + bg + "; selectedBackground: " + selectedBgHex + "; "
+                + "selectedForeground: $Label.foreground";
         btn.putClientProperty("FlatLaf.style", style);
         btn.repaint();
     }
 
     private void applyThemeStyles() {
         boolean isDark = FlatLaf.isLafDark();
+        Color bgColor     = isDark ? new Color(0x2b, 0x2b, 0x2e) : new Color(0xd8, 0xd8, 0xde);
+        Color borderColor = isDark ? new Color(0x3a, 0x3a, 0x3d) : new Color(0xc2, 0xc2, 0xc8);
+        String cardStyle = "arc: 16; background: " + String.format("#%06x", bgColor.getRGB() & 0xFFFFFF);
 
-        String bgHex = isDark ? "#2b2b2e" : "#d8d8de";
-        String borderHex = isDark ? "#3a3a3d" : "#c2c2c8";
-        String cardStyle = "arc: 16; background: " + bgHex + "; borderWidth: 1; borderColor: " + borderHex;
-
-        if (cardConsultazione != null) cardConsultazione.putClientProperty("FlatLaf.style", cardStyle);
-        if (cardPlesso != null) cardPlesso.putClientProperty("FlatLaf.style", cardStyle);
-
+        if (cardConsultazione != null) {
+            cardConsultazione.putClientProperty("FlatLaf.style", cardStyle);
+            cardConsultazione.setBackground(bgColor);
+            cardConsultazione.setBorder(new CompoundBorder(
+                    new LineBorder(borderColor, 1, true),
+                    new EmptyBorder(0, 0, 0, 0)));
+        }
+        if (cardPlesso != null) {
+            cardPlesso.putClientProperty("FlatLaf.style", cardStyle);
+            cardPlesso.setBackground(bgColor);
+            cardPlesso.setBorder(new CompoundBorder(
+                    new LineBorder(borderColor, 1, true),
+                    new EmptyBorder(0, 0, 0, 0)));
+        }
         updateToggleStyle(professori);
         updateToggleStyle(classi);
         updateToggleStyle(saraceno);

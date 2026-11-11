@@ -85,23 +85,4 @@ public class ReadCsv {
         return docenti;
     } //restituisce in modo univoco i docenti
 
-
-    public static void main(String[] args) {
-        ReadCsv reader = new ReadCsv();
-        try {
-            List<Lezione> lezioni = reader.leggi();
-            System.out.println("File csv letto con successo");
-            //System.out.println("Lezioni caricate: " + lezioni.size());
-            //lezioni.forEach(System.out::println);
-            System.out.println(lezioni.size());
-            for(Classe e : reader.getAllClassi())
-                System.out.println(e);
-            for(Docente d : reader.getAllDocenti())
-                System.out.println(d);
-
-        } catch (IOException | CsvValidationException e) {
-            System.err.println("Errore nella lettura del CSV: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 }

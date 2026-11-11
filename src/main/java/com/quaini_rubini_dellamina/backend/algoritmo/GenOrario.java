@@ -186,27 +186,11 @@ public class GenOrario {
         for (Classe s : r.getAllClassi()) {
             ArrayList<Slot> slots = new ArrayList<>(genOrarioOnClasse(lessons, s.getChiave()));
             school.setHforClasse(s.getChiave(), slots);
-            BuildCsv.scriviOrario(slots, cartella, true);
         }
 
         school.deduciOrariProf();
-        Map<String, ArrayList<Slot>> doc = school.getDocenti_tabelleh();
-        for (String key : doc.keySet()) {
-            BuildCsv.scriviOrario(doc.get(key), cartella, false);
-        }
+
         return school;
     }
 
-    public static void main(String[] args) throws CsvValidationException, IOException {
-        ReadCsv r = new ReadCsv();
-        List<Lezione> lessons = r.leggi();
-        GenOrarioVincoli generatore = new GenOrarioVincoli();
-        Istituto isty = generatore.generaIstituto(r, lessons, "/Users/francy_behemmy/Developer/PjOrarioScolastico/esOut");
-
-
-        TabellaOrsonPDF.creaPDF(isty.getClassi_tabelleh().get("5A-INFO"), true);
-//        Map<String, ArrayList<Slot>> mappa = school.getClassi_tabelleh();
-//        for (String chiave : mappa.keySet())
-//            System.out.println("key: " + chiave + " value: " + mappa.get(chiave));
-    }
 }

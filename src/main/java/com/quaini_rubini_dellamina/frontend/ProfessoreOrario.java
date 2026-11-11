@@ -4,25 +4,27 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
-import com.quaini_rubini_dellamina.backend.entità.Docente;
-import com.quaini_rubini_dellamina.backend.entità.Giorni;
-import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
-import com.quaini_rubini_dellamina.backend.io.ReadCsv;
+import com.quaini_rubini_dellamina.backend.OrarioManager;
+import com.quaini_rubini_dellamina.backend.entità.*;
+import com.quaini_rubini_dellamina.backend.io.BuildCsv;
+import com.quaini_rubini_dellamina.backend.io.TabellaOrsonPDF;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.io.File;
 import java.util.List;
 
 public class ProfessoreOrario extends JFrame {
+
     private final JLabel lblInfoBottom;
     private final JButton btnTema;
     private final JComboBox<String> comboProf;
+    private final DefaultTableModel tableModel;
+    private List<Slot> slotsCorrente = null;
 
     public ProfessoreOrario() {
         super("Orario Professori - Istituto Saraceno Romegialli");
@@ -33,7 +35,7 @@ public class ProfessoreOrario extends JFrame {
         mainPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
         setContentPane(mainPanel);
 
-        Font fontLabel = new Font("SansSerif", Font.BOLD, 14);
+        Font fontLabel  = new Font("SansSerif", Font.BOLD, 14);
         Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
         // ====================================================
@@ -42,14 +44,14 @@ public class ProfessoreOrario extends JFrame {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
-        // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
-
-        JLabel lblTitle = new JLabel("Orario Professori", createAdaptiveIcon("icons/user.svg", 22, 22), JLabel.CENTER);
+        JLabel lblTitle = new JLabel("Orario Professori",
+                createAdaptiveIcon("icons/user.svg", 22, 22), JLabel.CENTER);
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
 
         boolean isDark = FlatLaf.isLafDark();
-        btnTema = new JButton(isDark ? "Chiaro" : "Scuro", createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
+        btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
+                createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
         btnTema.setFont(fontButton);
         btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnTema.putClientProperty("FlatLaf.style", "arc: 999; margin: 8,16,8,16; borderWidth: 1");
@@ -61,15 +63,19 @@ public class ProfessoreOrario extends JFrame {
         JLabel labelProf = new JLabel("Professore:");
         labelProf.setFont(fontLabel);
 
-        // Caricamento dinamico dei docenti dal file CSV tramite ReadCsv.getAllDocenti()
-        String[] professori = caricaDocentiDaCSV();
+        // ====================================================
+        // Caricamento docenti tramite OrarioManager (backend)
+        // ====================================================
+        String[] professori = caricaDocenti();
         comboProf = new JComboBox<>(professori);
-        comboProf.setPreferredSize(new Dimension(200, 32));
+        comboProf.setPreferredSize(new Dimension(220, 32));
 
-        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO", createWhiteIcon("icons/lens.svg", 16, 16));
+        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO",
+                createWhiteIcon("icons/lens.svg", 16, 16));
         btnVisualizza.setFont(fontButton);
         btnVisualizza.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnVisualizza.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
+        btnVisualizza.putClientProperty("FlatLaf.style",
+                "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
 
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         filterPanel.add(labelProf);
@@ -85,29 +91,23 @@ public class ProfessoreOrario extends JFrame {
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // ====================================================
-        // ZONA CENTRO: TABELLA ORARIO PROFESSORE
+        // ZONA CENTRO: TABELLA ORARIO
         // ====================================================
         Giorni[] giorniValues = Giorni.values();
         String[] columnNames = new String[giorniValues.length + 1];
         columnNames[0] = "ORE";
-        for (int i = 0; i < giorniValues.length; i++) {
+        for (int i = 0; i < giorniValues.length; i++)
             columnNames[i + 1] = giorniValues[i].getNome().toUpperCase();
-        }
 
         OrarioLezioni[] orariValues = OrarioLezioni.values();
         Object[][] data = new Object[orariValues.length][columnNames.length];
         for (int i = 0; i < orariValues.length; i++) {
             data[i][0] = orariValues[i].getNome();
-            for (int j = 1; j < columnNames.length; j++) {
-                data[i][j] = "";
-            }
+            for (int j = 1; j < columnNames.length; j++) data[i][j] = "";
         }
 
-        DefaultTableModel tableModel = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+        tableModel = new DefaultTableModel(data, columnNames) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
         JTable table = new JTable(tableModel);
@@ -116,21 +116,51 @@ public class ProfessoreOrario extends JFrame {
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
 
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setHorizontalAlignment(JLabel.CENTER);
+
+                // Se la cella fa parte della prima colonna ("ORE"), mantiene lo stile standard
+                if (column == 0) {
+                    c.setBackground(table.getTableHeader().getBackground());
+                    c.setForeground(table.getTableHeader().getForeground());
+                    setFont(getFont().deriveFont(Font.BOLD));
+                    return c;
+                }
+
+                setFont(getFont().deriveFont(Font.PLAIN));
+
+                // Se la cella contiene del testo (docente occupato in quell'ora)
+                if (value != null && !value.toString().trim().isEmpty()) {
+                    boolean isDark = FlatLaf.isLafDark();
+
+                    // Colore celle occupate (adattato al tema FlatLaf attivo)
+                    c.setBackground(isDark ? new Color(0, 70, 140) : new Color(215, 235, 255));
+                    c.setForeground(isDark ? Color.WHITE : new Color(10, 40, 80));
+                } else {
+                    // Cella vuota: ripristina i colori di default della tabella
+                    c.setBackground(table.getBackground());
+                    c.setForeground(table.getForeground());
+                }
+
+                return c;
+            }
+        });
 
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // ====================================================
-        // ZONA SUD: PULSANTI E LABEL INFORMATIVA
+        // ZONA SUD: BOTTONI ESPORTAZIONE + LABEL INFO
         // ====================================================
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
         JPanel leftBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        JButton btnIndietro = new JButton("Torna Indietro", createAdaptiveIcon("icons/arrow.svg", 16, 16));
+        JButton btnIndietro = new JButton("Torna Indietro",
+                createAdaptiveIcon("icons/arrow.svg", 16, 16));
         btnIndietro.setFont(fontButton);
         btnIndietro.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnIndietro.putClientProperty("FlatLaf.style", "arc: 10; margin: 8,15,8,15");
@@ -145,31 +175,103 @@ public class ProfessoreOrario extends JFrame {
         JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         JButton btnPdf = new JButton("SALVA PDF", createWhiteIcon("icons/pdfSave.svg", 16, 16));
         JButton btnCsv = new JButton("SALVA CSV", createWhiteIcon("icons/csvSave.svg", 16, 16));
-
         btnPdf.setFont(fontButton);
         btnCsv.setFont(fontButton);
         btnPdf.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnCsv.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnPdf.putClientProperty("FlatLaf.style", "background: #198754; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
-        btnCsv.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
+        btnPdf.putClientProperty("FlatLaf.style",
+                "background: #198754; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
+        btnCsv.putClientProperty("FlatLaf.style",
+                "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
 
         rightButtonsPanel.add(btnPdf);
         rightButtonsPanel.add(btnCsv);
 
         bottomPanel.add(leftBottomPanel, BorderLayout.WEST);
         bottomPanel.add(rightButtonsPanel, BorderLayout.EAST);
-
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
+        // ====================================================
+        // LISTENER – Torna indietro
+        // ====================================================
         btnIndietro.addActionListener(e -> {
             SwingUtilities.invokeLater(HomeWindow::new);
             dispose();
         });
 
+        // ====================================================
+        // LISTENER – VISUALIZZA ORARIO
+        // Recupera gli slot dal backend tramite OrarioManager e riempie la tabella
+        // ====================================================
         btnVisualizza.addActionListener(e -> {
-            if (comboProf.getSelectedItem() != null) {
-                String LettoProf = comboProf.getSelectedItem().toString();
-                lblInfoBottom.setText("Professore: " + LettoProf + " • Orario generato");
+            if (comboProf.getSelectedItem() == null) return;
+            String nomeProf = comboProf.getSelectedItem().toString();
+
+            slotsCorrente = OrarioManager.getInstance().getOrarioDocente(nomeProf);
+
+            // Svuota la tabella
+            for (int row = 0; row < tableModel.getRowCount(); row++)
+                for (int col = 1; col < tableModel.getColumnCount(); col++)
+                    tableModel.setValueAt("", row, col);
+
+            // Riempie la tabella con i dati degli slot
+            for (Slot slot : slotsCorrente) {
+                if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
+                    continue;
+                int ora    = slot.indexOra();
+                int giorno = slot.indexGiorno();
+                String chiaveClasse = slot.getLezione().getClasse() != null
+                        ? slot.getLezione().getClasse().getChiave() : "";
+                tableModel.setValueAt(chiaveClasse, ora, giorno + 1);
+            }
+
+            int totOre = (int) slotsCorrente.stream()
+                    .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null)
+                    .count();
+            lblInfoBottom.setText("Professore: " + nomeProf + " • " + totOre + " ore settimanali");
+        });
+
+        // ====================================================
+        // LISTENER – SALVA PDF
+        // ====================================================
+        btnPdf.addActionListener(e -> {
+            if (slotsCorrente == null || slotsCorrente.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            JFileChooser fc = new JFileChooser();
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            fc.setDialogTitle("Scegli la cartella di destinazione");
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    String nome = comboProf.getSelectedItem().toString();
+                    OrarioManager.getInstance().esportaPdfDocente(nome, fc.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(this, "PDF salvato correttamente.", "Salvato", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Errore nel salvataggio PDF:\n" + ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        // ====================================================
+        // LISTENER – SALVA CSV
+        // ====================================================
+        btnCsv.addActionListener(e -> {
+            if (slotsCorrente == null || slotsCorrente.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            JFileChooser fc = new JFileChooser();
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            fc.setDialogTitle("Scegli la cartella di destinazione");
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    String nome = comboProf.getSelectedItem().toString();
+                    OrarioManager.getInstance().esportaCsvDocente(nome, fc.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(this, "CSV salvato correttamente.", "Salvato", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Errore nel salvataggio CSV:\n" + ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -179,24 +281,18 @@ public class ProfessoreOrario extends JFrame {
         setVisible(true);
     }
 
-    /**
-     * Utilizza la classe ReadCsv per caricare tutti i docenti univoci tramite getAllDocenti().
-     */
-    private String[] caricaDocentiDaCSV() {
-        ReadCsv reader = new ReadCsv();
+    // ====================================================
+    // Carica la lista dei docenti dal backend (OrarioManager)
+    // ====================================================
+    private String[] caricaDocenti() {
         try {
-            HashSet<Docente> setDocenti = reader.getAllDocenti();
-            List<String> nomiDocenti = new ArrayList<>();
-            for (Docente d : setDocenti) {
-                if (d != null && d.getNome() != null && !d.getNome().isEmpty()) {
-                    nomiDocenti.add(d.getNome());
-                }
-            }
-            Collections.sort(nomiDocenti);
-            return nomiDocenti.toArray(new String[0]);
+            return OrarioManager.getInstance().getDocenti().stream()
+                    .map(Docente::getNome)
+                    .sorted()
+                    .toArray(String[]::new);
         } catch (Exception e) {
-            System.err.println("Errore nel caricamento dei docenti dal CSV: " + e.getMessage());
-            return new String[]{"Nessun docente trovato"};
+            System.err.println("Errore nel caricamento docenti: " + e.getMessage());
+            return new String[]{"Nessun docente disponibile"};
         }
     }
 

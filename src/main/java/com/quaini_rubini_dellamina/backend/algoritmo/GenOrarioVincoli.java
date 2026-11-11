@@ -79,15 +79,8 @@ public class GenOrarioVincoli extends GenOrario {
         return true;
     }
 
-    // =========================================================================
-    // VINCOLO NON OBBLIGATORIO (SOFT CONSTRAINT / PREFERENZA DOCENTE)
-    // "Riduzione delle ore buche":
-    // Il docente preferisce avere lezioni compatte ed evitare buchi nella giornata.
-    // L'algoritmo ordina gli slot validi dando massima precedenza a quelli che
-    // azzerano o minimizzano le ore buche. Qualora non fosse possibile per via
-    // di vincoli di contemporaneità di altre classi, la lezione viene comunque
-    // collocata evitando blocchi della generazione (natura soft/non obbligatoria).
-    // =========================================================================
+    // Vincolo non obbligatorio
+    // Riduzione delle ore buche
 
     @Override
     protected void ordinaSlotLiberi(List<int[]> liberi, String nomeDocente) {
@@ -162,9 +155,9 @@ public class GenOrarioVincoli extends GenOrario {
         return new GenOrarioVincoli(vincoli).generaIstituto(r, lezioni, cartella);
     }
 
-    // =========================================================================
-    // REPORT E VERIFICA VINCOLI CON MOTIVAZIONI DELLE PREFERENZE
-    // =========================================================================
+
+    // report e verifica delle preferenze
+
 
     public static class RisultatoVerificaDocente {
         public final String docente;
@@ -224,7 +217,7 @@ public class GenOrarioVincoli extends GenOrario {
             RisultatoVerificaDocente res = new RisultatoVerificaDocente(nomeProf, totOre, bucheTot);
             System.arraycopy(oreGiornoArr, 0, res.oreGiorno, 0, GIORNI);
 
-            // Verifica vincoli obbligatori (Hard)
+            // Verifica vincoli obbligatori
             if (p.giornoLibero() != null) {
                 int gLibero = indiceGiorno(p.giornoLibero());
                 if (gLibero >= 0 && res.oreGiorno[gLibero] > 0) {
@@ -244,7 +237,7 @@ public class GenOrarioVincoli extends GenOrario {
                 }
             }
 
-            // Verifica vincolo non obbligatorio (Soft: Riduzione Ore Buche)
+            // Verifica vincolo non obbligatorio
             if (p.riduciOreBuche() && bucheTot > 0) {
                 res.motivazioniNonSoddisfatte.add("Preferenza 'riduzione-ore-buche': riscontrate " + bucheTot
                         + " ore buche complessive nella settimana. Motivazione: le lezioni assegnate a classi differenti"
@@ -255,70 +248,5 @@ public class GenOrarioVincoli extends GenOrario {
         }
 
         return analisi;
-    }
-
-    public static void stampaVerifica(ConfiguraVincoli vincoli, Istituto school) {
-        System.out.println("================================================================================");
-        System.out.println("              VERIFICA VINCOLI OBBLIGATORI E PREFERENZE DOCENTI                 ");
-        System.out.println("================================================================================");
-
-        Map<String, RisultatoVerificaDocente> analisi = analizzaOrario(vincoli, school);
-
-        for (Preferenza p : vincoli.preferenze()) {
-            RisultatoVerificaDocente res = analisi.get(p.docente());
-            if (res == null) continue;
-
-            System.out.println("\nDocente: " + p.docente() + " [Totale ore: " + res.totOre + "]");
-            System.out.println("  -------------------------------------------------------------");
-            System.out.println("  VINCOLI OBBLIGATORI (HARD CONSTRAINTS):");
-            if (p.giornoLibero() != null) {
-                int gLib = indiceGiorno(p.giornoLibero());
-                int oreNelGiornoLibero = (gLib >= 0) ? res.oreGiorno[gLib] : 0;
-                System.out.println("    - Giorno libero (" + p.giornoLibero() + "): "
-                        + (oreNelGiornoLibero == 0 ? "✓ RISPETTATO (0 ore)" : "✗ VIOLATO (" + oreNelGiornoLibero + " ore)"));
-            }
-            if (p.limiteH() > 0) {
-                int maxG = Arrays.stream(res.oreGiorno).max().orElse(0);
-                System.out.println("    - Limite max ore/giorno (" + p.limiteH() + "): "
-                        + (maxG <= p.limiteH() ? "✓ RISPETTATO (max " + maxG + "h)" : "✗ VIOLATO (max " + maxG + "h)"));
-            }
-            if (p.noPrimaH()) {
-                System.out.println("    - Esclusione 1ª ora: " + (!res.violazioneNoPrimaH ? "✓ RISPETTATO" : "✗ VIOLATO"));
-            }
-            if (p.noUltimaH()) {
-                System.out.println("    - Esclusione ultima ora: " + (!res.violazioneNoUltimaH ? "✓ RISPETTATO" : "✗ VIOLATO"));
-            }
-
-            System.out.println("  VINCOLO NON OBBLIGATORIO (SOFT CONSTRAINT):");
-            if (p.riduciOreBuche()) {
-                if (res.oreBucheTotali == 0) {
-                    System.out.println("    - Riduzione ore buche: ✓ OTTIMIZZATO AL 100% (0 ore buche settimanali)");
-                } else {
-                    System.out.println("    - Riduzione ore buche: ⚠ PARZIALMENTE SODDISFATTO (" + res.oreBucheTotali + " ore buche totali)");
-                }
-            } else {
-                System.out.println("    - Ore buche settimanali riscontrate: " + res.oreBucheTotali + " (preferenza non attivata)");
-            }
-
-            if (!res.motivazioniNonSoddisfatte.isEmpty()) {
-                System.out.println("  MOTIVAZIONE PREFERENZE NON COMPLETAMENTE SODDISFATTE:");
-                for (String mot : res.motivazioniNonSoddisfatte) {
-                    System.out.println("    • " + mot);
-                }
-            }
-        }
-        System.out.println("================================================================================\n");
-    }
-
-    public static void main(String[] args) throws CsvValidationException, IOException {
-        ReadCsv r = new ReadCsv();
-        List<Lezione> lessons = r.leggi();
-        ConfiguraVincoli vincoli = ReadVincoliJSON.leggi();
-        GenOrarioVincoli generatore = new GenOrarioVincoli(vincoli);
-
-        System.out.println("Avvio generazione orario con vincoli obbligatori e preferenze non obbligatorie...");
-        Istituto isty = generatore.generaIstituto(r, lessons, "esOut");
-
-        stampaVerifica(vincoli, isty);
     }
 }

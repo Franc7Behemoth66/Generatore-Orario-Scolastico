@@ -4,38 +4,32 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
-import com.quaini_rubini_dellamina.backend.entità.Classe;
-import com.quaini_rubini_dellamina.backend.entità.Giorni;
-import com.quaini_rubini_dellamina.backend.entità.OrarioLezioni;
-import com.quaini_rubini_dellamina.backend.entità.PlessoScuola;
-import com.quaini_rubini_dellamina.backend.io.ReadCsv;
+import com.quaini_rubini_dellamina.backend.OrarioManager;
+import com.quaini_rubini_dellamina.backend.entità.*;
+import com.quaini_rubini_dellamina.backend.io.ColoriOrario;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
 
 public class ClasseOrario extends JFrame {
+
     private final String plesso;
     private final JComboBox<String> comboIndirizzo;
     private final JComboBox<String> comboAnno;
     private final JComboBox<String> comboChiaveClasse;
     private final JLabel lblInfoBottom;
     private final JButton btnTema;
-    private final Set<Classe> classiEsistenti = new HashSet<>();
+    private final DefaultTableModel tableModel;
+    private List<Slot> slotsCorrente = null;
 
     public ClasseOrario(String p) {
         super("Orario Classi - Plesso " + p.toUpperCase());
         this.plesso = p;
-
-        // Carica le classi reali dal file CSV tramite ReadCsv
-        caricaClassiDaCSV();
 
         getRootPane().putClientProperty("JRootPane.style", "arc: 18");
 
@@ -43,7 +37,7 @@ public class ClasseOrario extends JFrame {
         mainPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
         setContentPane(mainPanel);
 
-        Font fontLabel = new Font("SansSerif", Font.BOLD, 14);
+        Font fontLabel  = new Font("SansSerif", Font.BOLD, 14);
         Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
         // ====================================================
@@ -53,13 +47,13 @@ public class ClasseOrario extends JFrame {
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
         JPanel headerPanel = new JPanel(new BorderLayout());
-
         FlatSVGIcon hatIcon = createAdaptiveIcon("icons/hat.svg", 22, 22);
         JLabel lblTitle = new JLabel("Orario Classi [" + p.toUpperCase() + "]", hatIcon, JLabel.CENTER);
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 20));
 
         boolean isDark = FlatLaf.isLafDark();
-        btnTema = new JButton(isDark ? "Chiaro" : "Scuro", createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
+        btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
+                createAdaptiveIcon(isDark ? "icons/sun.svg" : "icons/moon.svg", 18, 18));
         btnTema.setFont(fontButton);
         btnTema.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnTema.putClientProperty("FlatLaf.style", "arc: 999; margin: 8,16,8,16; borderWidth: 1");
@@ -68,7 +62,7 @@ public class ClasseOrario extends JFrame {
         headerPanel.add(lblTitle, BorderLayout.CENTER);
         headerPanel.add(btnTema, BorderLayout.EAST);
 
-        // Filtri
+        // Filtri: Anno + Indirizzo -> la 3a combo si aggiorna dinamicamente
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
 
         JLabel lblAnno = new JLabel("Classe:");
@@ -76,19 +70,15 @@ public class ClasseOrario extends JFrame {
         comboAnno = new JComboBox<>(new String[]{"1", "2", "3", "4", "5"});
         comboAnno.setPreferredSize(new Dimension(60, 32));
 
-        String[] profPlesso = plesso.equalsIgnoreCase("saraceno")
-                ? PlessoScuola.plessoSaraceno().toArray(new String[0])
-                : PlessoScuola.plessoRomegialli().toArray(new String[0]);
-        comboIndirizzo = new JComboBox<>(profPlesso);
+        String[] indirizziPlesso = getIndirizziPerPlesso();
+        comboIndirizzo = new JComboBox<>(indirizziPlesso);
         comboIndirizzo.setPreferredSize(new Dimension(85, 32));
 
         comboChiaveClasse = new JComboBox<>();
-        comboChiaveClasse.setPreferredSize(new Dimension(100, 32));
+        comboChiaveClasse.setPreferredSize(new Dimension(110, 32));
 
         comboIndirizzo.addActionListener(e -> aggiornaChiaviClasse());
         comboAnno.addActionListener(e -> aggiornaChiaviClasse());
-
-        // Popolamento iniziale in base ai filtri selezionati
         aggiornaChiaviClasse();
 
         filterPanel.add(lblAnno);
@@ -96,10 +86,12 @@ public class ClasseOrario extends JFrame {
         filterPanel.add(comboIndirizzo);
         filterPanel.add(comboChiaveClasse);
 
-        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO", createWhiteIcon("icons/lens.svg", 16, 16));
+        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO",
+                createWhiteIcon("icons/lens.svg", 16, 16));
         btnVisualizza.setFont(fontButton);
         btnVisualizza.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnVisualizza.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
+        btnVisualizza.putClientProperty("FlatLaf.style",
+                "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
 
         JPanel formPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         formPanel.add(filterPanel);
@@ -111,50 +103,101 @@ public class ClasseOrario extends JFrame {
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // ====================================================
-        // ZONA CENTRO: TABELLA
+        // ZONA CENTRO: TABELLA ORARIO
         // ====================================================
         Giorni[] giorniValues = Giorni.values();
         String[] columnNames = new String[giorniValues.length + 1];
         columnNames[0] = "ORE";
-        for (int i = 0; i < giorniValues.length; i++) {
+        for (int i = 0; i < giorniValues.length; i++)
             columnNames[i + 1] = giorniValues[i].getNome().toUpperCase();
-        }
 
         OrarioLezioni[] orariValues = OrarioLezioni.values();
         Object[][] data = new Object[orariValues.length][columnNames.length];
         for (int i = 0; i < orariValues.length; i++) {
             data[i][0] = orariValues[i].getNome();
-            for (int j = 1; j < columnNames.length; j++) {
-                data[i][j] = "";
-            }
+            for (int j = 1; j < columnNames.length; j++) data[i][j] = "";
         }
 
-        DefaultTableModel tableModel = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+        tableModel = new DefaultTableModel(data, columnNames) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
 
         JTable table = new JTable(tableModel);
+
+        // Colonna 0 ("ORE"): stretta e fissa (70px)
+        table.getColumnModel().getColumn(0).setPreferredWidth(70);
+        table.getColumnModel().getColumn(0).setMinWidth(60);
+        table.getColumnModel().getColumn(0).setMaxWidth(80);
+
+        // Colonne 1..5 (GIORNI): larghezza preferita maggiore (160px l'una)
+        for (int i = 1; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setPreferredWidth(160);
+        }
         table.setRowHeight(55);
         table.setFont(new Font("SansSerif", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
 
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setHorizontalAlignment(JLabel.CENTER);
+
+                // Colonna 0 ("ORE"): stile intestazione standard
+                if (column == 0) {
+                    c.setBackground(table.getTableHeader().getBackground());
+                    c.setForeground(table.getTableHeader().getForeground());
+                    setFont(getFont().deriveFont(Font.BOLD));
+                    return c;
+                }
+
+                setFont(getFont().deriveFont(Font.PLAIN));
+
+                // Cella occupata: assegna il colore dinamico legato alla materia
+                if (value != null && !value.toString().trim().isEmpty() && slotsCorrente != null) {
+                    Map<String, Color> mappaColori = ColoriOrario.buildColoriMaterie(slotsCorrente);
+                    String testo = value.toString();
+
+                    // Estrazione del nome materia dal blocco HTML <html><center>MATERIA<br>(DOCENTE)</center></html>
+                    String materia = testo;
+                    if (testo.contains("<br>")) {
+                        materia = testo.replaceAll("<html><center>", "")
+                                .split("<br>")[0]
+                                .trim();
+                    }
+
+                    Color coloreMateria = mappaColori.get(materia);
+                    if (coloreMateria != null) {
+                        c.setBackground(coloreMateria);
+                        c.setForeground(new Color(30, 30, 30)); // Testo scuro per contrasto su colore pastello
+                    } else {
+                        boolean isDark = FlatLaf.isLafDark();
+                        c.setBackground(isDark ? new Color(0, 70, 140) : new Color(215, 235, 255));
+                        c.setForeground(isDark ? Color.WHITE : new Color(10, 40, 80));
+                    }
+                } else {
+                    // Cella vuota
+                    c.setBackground(table.getBackground());
+                    c.setForeground(table.getForeground());
+                }
+
+                return c;
+            }
+        });
 
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // ====================================================
-        // ZONA SUD: PULSANTI ESPORTAZIONE E INFO
+        // ZONA SUD: BOTTONI + INFO
         // ====================================================
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
         JPanel leftBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        JButton btnIndietro = new JButton("Torna Indietro", createAdaptiveIcon("icons/arrow.svg", 16, 16));
+        JButton btnIndietro = new JButton("Torna Indietro",
+                createAdaptiveIcon("icons/arrow.svg", 16, 16));
         btnIndietro.setFont(fontButton);
         btnIndietro.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnIndietro.putClientProperty("FlatLaf.style", "arc: 10; margin: 8,15,8,15");
@@ -173,29 +216,101 @@ public class ClasseOrario extends JFrame {
         JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         JButton btnPdf = new JButton("SALVA PDF", createWhiteIcon("icons/pdfSave.svg", 16, 16));
         JButton btnCsv = new JButton("SALVA CSV", createWhiteIcon("icons/csvSave.svg", 16, 16));
-
         btnPdf.setFont(fontButton);
         btnCsv.setFont(fontButton);
         btnPdf.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnCsv.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnPdf.putClientProperty("FlatLaf.style", "background: #198754; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
-        btnCsv.putClientProperty("FlatLaf.style", "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
+        btnPdf.putClientProperty("FlatLaf.style",
+                "background: #198754; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
+        btnCsv.putClientProperty("FlatLaf.style",
+                "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 8,15,8,15; borderWidth: 0; focusWidth: 0");
 
         rightButtonsPanel.add(btnPdf);
         rightButtonsPanel.add(btnCsv);
-
         bottomPanel.add(leftBottomPanel, BorderLayout.WEST);
         bottomPanel.add(rightButtonsPanel, BorderLayout.EAST);
-
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
+        // ====================================================
+        // LISTENER – VISUALIZZA ORARIO
+        // ====================================================
         btnVisualizza.addActionListener(e -> {
-            String classeSelezionata = (String) comboChiaveClasse.getSelectedItem();
-            if (classeSelezionata != null) {
-                System.out.println("Classe selezionata: " + classeSelezionata);
-                lblInfoBottom.setText("Classe: " + classeSelezionata + " • Orario generato");
-            } else {
+            String chiaveClasse = (String) comboChiaveClasse.getSelectedItem();
+            if (chiaveClasse == null) {
                 lblInfoBottom.setText("Nessuna classe disponibile per i filtri selezionati.");
+                return;
+            }
+
+            slotsCorrente = OrarioManager.getInstance().getOrarioClasse(chiaveClasse);
+
+            // Svuota la tabella
+            for (int row = 0; row < tableModel.getRowCount(); row++)
+                for (int col = 1; col < tableModel.getColumnCount(); col++)
+                    tableModel.setValueAt("", row, col);
+
+            // Riempie la tabella con i dati
+            for (Slot slot : slotsCorrente) {
+                if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
+                    continue;
+                int ora    = slot.indexOra();
+                int giorno = slot.indexGiorno();
+                Lezione l  = slot.getLezione();
+                String materia = l.getMateria() != null ? l.getMateria().getNome() : "";
+                String docente = l.getDocente() != null ? l.getDocente().getNome() : "";
+                String testoCella = "<html><center>" + materia + "<br>(" + docente + ")</center></html>";
+
+                tableModel.setValueAt(testoCella, ora, giorno + 1);
+            }
+
+            int totOre = (int) slotsCorrente.stream()
+                    .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null)
+                    .count();
+            lblInfoBottom.setText("Classe: " + chiaveClasse + " • " + totOre + " ore settimanali");
+
+            table.repaint();
+        });
+
+        // ====================================================
+        // LISTENER – SALVA PDF
+        // ====================================================
+        btnPdf.addActionListener(e -> {
+            if (slotsCorrente == null || slotsCorrente.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            JFileChooser fc = new JFileChooser();
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            fc.setDialogTitle("Scegli la cartella di destinazione");
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    String chiave = (String) comboChiaveClasse.getSelectedItem();
+                    OrarioManager.getInstance().esportaPdfClasse(chiave, fc.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(this, "PDF salvato correttamente.", "Salvato", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Errore nel salvataggio PDF:\n" + ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        // ====================================================
+        // LISTENER – SALVA CSV
+        // ====================================================
+        btnCsv.addActionListener(e -> {
+            if (slotsCorrente == null || slotsCorrente.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            JFileChooser fc = new JFileChooser();
+            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            fc.setDialogTitle("Scegli la cartella di destinazione");
+            if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    String chiave = (String) comboChiaveClasse.getSelectedItem();
+                    OrarioManager.getInstance().esportaCsvClasse(chiave, fc.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(this, "CSV salvato correttamente.", "Salvato", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Errore nel salvataggio CSV:\n" + ex.getMessage(), "Errore", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -205,44 +320,39 @@ public class ClasseOrario extends JFrame {
         setVisible(true);
     }
 
-    /**
-     * Carica tutte le classi univoche registrate nel file CSV usando la classe ReadCsv.
-     */
-    private void caricaClassiDaCSV() {
-        ReadCsv reader = new ReadCsv();
-        try {
-            classiEsistenti.addAll(reader.getAllClassi());
-        } catch (Exception e) {
-            System.err.println("Errore durante il caricamento delle classi: " + e.getMessage());
-        }
+    private String[] getIndirizziPerPlesso() {
+        List<String> indirizziPlesso = plesso.equalsIgnoreCase("saraceno")
+                ? PlessoScuola.plessoSaraceno()
+                : PlessoScuola.plessoRomegialli();
+
+        Set<String> presenti = new HashSet<>();
+        for (Classe c : OrarioManager.getInstance().getClassi())
+            presenti.add(c.getIndirizzo().toUpperCase());
+
+        List<String> filtrati = new ArrayList<>();
+        for (String ind : indirizziPlesso)
+            if (presenti.contains(ind.toUpperCase())) filtrati.add(ind);
+
+        return filtrati.isEmpty()
+                ? indirizziPlesso.toArray(new String[0])
+                : filtrati.toArray(new String[0]);
     }
 
-    /**
-     * Popola la 3ª JComboBox solo con le chiavi delle classi (es. "1A-SSS")
-     * che corrispondono esattamente all'anno e all'indirizzo selezionati nel CSV.
-     */
     private void aggiornaChiaviClasse() {
         comboChiaveClasse.removeAllItems();
         String indirizzo = (String) comboIndirizzo.getSelectedItem();
-        String annoStr = (String) comboAnno.getSelectedItem();
+        String annoStr   = (String) comboAnno.getSelectedItem();
+        if (indirizzo == null || annoStr == null) return;
 
-        if (indirizzo != null && annoStr != null) {
-            int anno = Integer.parseInt(annoStr);
-            List<String> chiaviFiltrate = new ArrayList<>();
+        int anno = Integer.parseInt(annoStr);
+        List<String> chiaviFiltrate = new ArrayList<>();
 
-            for (Classe c : classiEsistenti) {
-                if (c.getAnno() == anno && c.getIndirizzo().equalsIgnoreCase(indirizzo)) {
-                    chiaviFiltrate.add(c.getChiave());
-                }
-            }
-
-            // Ordina le chiavi (es: 1A-SSS, 1B-SSS)
-            Collections.sort(chiaviFiltrate);
-
-            for (String chiave : chiaviFiltrate) {
-                comboChiaveClasse.addItem(chiave);
-            }
+        for (Classe c : OrarioManager.getInstance().getClassi()) {
+            if (c.getAnno() == anno && c.getIndirizzo().equalsIgnoreCase(indirizzo))
+                chiaviFiltrate.add(c.getChiave());
         }
+        Collections.sort(chiaviFiltrate);
+        for (String chiave : chiaviFiltrate) comboChiaveClasse.addItem(chiave);
     }
 
     private FlatSVGIcon createAdaptiveIcon(String path, int width, int height) {

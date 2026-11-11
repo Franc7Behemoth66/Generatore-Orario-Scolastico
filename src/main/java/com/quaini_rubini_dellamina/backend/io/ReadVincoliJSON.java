@@ -40,7 +40,4 @@ public class ReadVincoliJSON {
         return objectMapper.readValue(new File(path), ConfiguraVincoli.class);
     }
 
-    public static void main(String[] args) throws IOException {
-        new ReadVincoliJSON();
-    }
 }
