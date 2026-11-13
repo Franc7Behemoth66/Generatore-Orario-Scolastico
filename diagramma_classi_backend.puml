@@ -7,7 +7,7 @@ skinparam roundcorner 5
 skinparam nodesep 30
 skinparam ranksep 45
 
-title Diagramma delle classi - Progetto orario scolastico in Java
+title Diagramma delle classi completo - Progetto orario scolastico in Java
 
 
 <style>
@@ -22,10 +22,53 @@ document {
 }
 </style>
 
+' PACKAGE com.quaini_rubini_dellamina
+package "com.quaini_rubini_dellamina" #FFF2CC {
+    class Main {
+        {static} + main(args: String[]): void
+    }
+}
 
-' ==============================================================
+' PACKAGE backend
+package "backend" #E1D5E7 {
+    class OrarioManager {
+        {static} - DEFAULT_CSV_PATH: String
+        {static} - DEFAULT_OUTPUT_DIR: String
+        {static} - INSTANCE: OrarioManager
+        - currentCsvPath: String
+        - reader: ReadCsv
+        - lezioni: List<Lezione>
+        - vincoli: ConfiguraVincoli
+        - generatore: GenOrarioVincoli
+        - istituto: Istituto
+        - analisiDocenti: Map<String, RisultatoVerificaDocente>
+        - inizializzato: boolean
+        - OrarioManager()
+        {static} + getInstance(): OrarioManager
+        + inizializza(): void
+        + caricaDataset(csvPath: String): void
+        + caricaNuovoCsv(path: String): void
+        + isInizializzato(): boolean
+        + getNumeroLezioni(): int
+        + getNumeroClassi(): int
+        + getNumeroDocenti(): int
+        + getClassi(): List<Classe>
+        + getDocenti(): List<Docente>
+        + getOrarioClasse(chiaveClasse: String): List<Slot>
+        + getOrarioDocente(nomeDocente: String): List<Slot>
+        + getPreferenzaDocente(nomeDocente: String): Preferenza
+        + getAnalisiDocente(nomeDocente: String): RisultatoVerificaDocente
+        + getIstituto(): Istituto
+        + getVincoli(): ConfiguraVincoli
+        + getLezioni(): List<Lezione>
+        + esportaPdfClasse(chiaveClasse: String, cartella: String): void
+        + esportaCsvClasse(chiaveClasse: String, cartella: String): void
+        + esportaPdfDocente(nomeDocente: String, cartella: String): void
+        + esportaCsvDocente(nomeDocente: String, cartella: String): void
+    }
+}
+
 ' PACKAGE entità
-' ==============================================================
 package "backend.entità" #DDDDDD {
 
     class Docente {
@@ -115,11 +158,14 @@ package "backend.entità" #DDDDDD {
         - limiteH: int
         - noPrimaH: boolean
         - noUltimaH: boolean
+        - riduciOreBuche: boolean
+        + Preferenza(docente: String, giornoLibero: String, limiteH: int, noPrimaH: boolean, noUltimaH: boolean)
         + docente(): String
         + giornoLibero(): String
         + limiteH(): int
         + noPrimaH(): boolean
         + noUltimaH(): boolean
+        + riduciOreBuche(): boolean
         + toString(): String
     }
 
@@ -170,9 +216,7 @@ package "backend.entità" #DDDDDD {
     }
 }
 
-' ==============================================================
 ' PACKAGE algoritmo
-' ==============================================================
 package "backend.algoritmo" #AAFF99 {
 
     class GenOrario {
@@ -184,13 +228,14 @@ package "backend.algoritmo" #AAFF99 {
         + generaCasuale(lezioni: List<Lezione>): List<Slot>
         + espandiInSlot(lezioni: List<Lezione>): List<Slot>
         - getSlotLiberi(occupato: boolean[][], nomeDocente: String, rnd: Random): List<int[]>
+        # ordinaSlotLiberi(liberi: List<int[]>, nomeDocente: String): void
+        + getDocentiUsati(): Set<String>
         # isSlotValido(nomeDocente: String, giorno: int, ora: int): boolean
         # registra(nomeDocente: String, giorno: int, ora: int): void
         # chiaveDocente(nomeDocente: String, giorno: int, ora: int): String
         # clonaOre(source: Map<String, int[]>): Map<String, int[]>
         # ripristinaOre(backup: Map<String, int[]>): void
         + generaIstituto(r: ReadCsv, lessons: List<Lezione>, cartella: String): Istituto
-        {static} + main(args: String[]): void
     }
 
     class GenOrarioVincoli {
@@ -199,17 +244,20 @@ package "backend.algoritmo" #AAFF99 {
         + GenOrarioVincoli(cfg: ConfiguraVincoli)
         + GenOrarioVincoli()
         + getVincoli(): ConfiguraVincoli
+        + getPreferenzaDocente(nomeDocente: String): Preferenza
         # isSlotValido(nomeDocente: String, giorno: int, ora: int): boolean
+        # ordinaSlotLiberi(liberi: List<int[]>, nomeDocente: String): void
+        + calcolaPenalitaSoft(nomeDocente: String, giorno: int, ora: int): int
+        + getOreDocenteNelGiorno(nomeDocente: String, giorno: int): List<Integer>
+        {static} + calcolaOreBucheGiorno(ore: List<Integer>): int
         {static} + indiceGiorno(nomeGiorno: String): int
         {static} + generaConVincoli(r: ReadCsv, lezioni: List<Lezione>, cartella: String): Istituto
-        {static} + stampaVerifica(vincoli: ConfiguraVincoli, school: Istituto): void
+        {static} + analizzaOrario(vincoli: ConfiguraVincoli, school: Istituto): Map<String, RisultatoVerificaDocente>
     }
 }
 
-' ==============================================================
 ' PACKAGE io
-' ==============================================================
-package "backend.io"  #DDED3434 {
+package "backend.io" #F8CECC {
 
     class BuildCsv {
         {static} - DEFAULT_OUTPUT_PATH: String
@@ -244,54 +292,108 @@ package "backend.io"  #DDED3434 {
         {static} + creaPDF(slotPDF: List<Slot>, dir: String, isClasse: boolean): void
         {static} + creaPDF(slotAssegnati: List<Slot>, isClasse: boolean): void
     }
+
+    class ColoriOrario {
+        {static} + COLORI: Color[]
+        {static} + buildColoriMaterie(slots: List<Slot>): Map<String, Color>
+        {static} + getColoreProfessore(): Color
+    }
 }
 
-' ==============================================================
+' PACKAGE frontend
+package "frontend" #DAE8FC {
+
+    class HomeWindow {
+        - btnTema: JButton
+        - l2: JLabel
+        - lblStats: JLabel
+        - cardConsultazione: JPanel
+        - cardPlesso: JPanel
+        - professori: JToggleButton
+        - classi: JToggleButton
+        - saraceno: JToggleButton
+        - romegialli: JToggleButton
+        + HomeWindow()
+        - aggiornaStats(): void
+        - createCardContainer(content: JComponent): JPanel
+        - createSeamlessToggle(text: String, iconPath: String): JToggleButton
+        - createAdaptiveIcon(path: String, width: int, height: int): FlatSVGIcon
+        - createWhiteIcon(path: String, width: int, height: int): FlatSVGIcon
+        - updateToggleStyle(btn: JToggleButton): void
+        - applyThemeStyles(): void
+        - toggleTheme(): void
+    }
+
+    class ClasseOrario {
+        - plesso: String
+        - comboIndirizzo: JComboBox<String>
+        - comboAnno: JComboBox<String>
+        - comboChiaveClasse: JComboBox<String>
+        - lblInfoBottom: JLabel
+        - btnTema: JButton
+        - tableModel: DefaultTableModel
+        - slotsCorrente: List<Slot>
+        - mappaColori: Map<String, Color>
+        + ClasseOrario(p: String)
+        - getIndirizziPerPlesso(): String[]
+        - aggiornaChiaviClasse(): void
+        - createAdaptiveIcon(path: String, width: int, height: int): FlatSVGIcon
+        - createWhiteIcon(path: String, width: int, height: int): FlatSVGIcon
+        - toggleTheme(): void
+    }
+
+    class ProfessoreOrario {
+        - lblInfoBottom: JLabel
+        - btnTema: JButton
+        - comboProf: JComboBox<String>
+        - tableModel: DefaultTableModel
+        - slotsCorrente: List<Slot>
+        + ProfessoreOrario()
+        - caricaDocenti(): String[]
+        - createAdaptiveIcon(path: String, width: int, height: int): FlatSVGIcon
+        - createWhiteIcon(path: String, width: int, height: int): FlatSVGIcon
+        - toggleTheme(): void
+    }
+}
+
 ' Ereditarietà
-' ==============================================================
 GenOrario <|-- GenOrarioVincoli
 
-' ==============================================================
 ' Relazioni fra entità
-' ==============================================================
 Lezione o-- Docente
 Lezione o-- Classe
 Lezione o-- Materia
 
-Slot o--  Lezione
+Slot o-- Lezione
 Slot ..> Giorni
 Slot ..> OrarioLezioni
 
-Istituto o--  Docente
-Istituto o--  Classe
-Istituto o--  Slot
+Istituto o-- Docente
+Istituto o-- Classe
+Istituto o-- Slot
 
-ConfiguraVincoli *--  Preferenza
+ConfiguraVincoli *-- Preferenza
 
-' ==============================================================
 ' Algoritmo -> entità / io
-' ==============================================================
+
 GenOrario ..> Lezione
 GenOrario ..> Slot
 GenOrario ..> Istituto
 GenOrario ..> ReadCsv
 GenOrario ..> BuildCsv
-GenOrario ..> GenOrarioVincoli
 
-GenOrarioVincoli o--  ConfiguraVincoli
-GenOrarioVincoli o--  Preferenza
+GenOrarioVincoli o-- ConfiguraVincoli
+GenOrarioVincoli o-- Preferenza
 GenOrarioVincoli ..> ReadVincoliJSON
 GenOrarioVincoli ..> Giorni
 
-' ==============================================================
 ' io -> entità
-' ==============================================================
 ReadCsv ..> Lezione
 ReadCsv ..> Docente
 ReadCsv ..> Classe
 ReadCsv ..> Materia
 
-ReadVincoliJSON o--  ConfiguraVincoli
+ReadVincoliJSON o-- ConfiguraVincoli
 ReadVincoliJSON ..> ConfiguraVincoli
 
 BuildCsv ..> Slot
@@ -302,38 +404,61 @@ TabellaOrsonPDF ..> Slot
 TabellaOrsonPDF ..> Giorni
 TabellaOrsonPDF ..> OrarioLezioni
 
-' ==============================================================
-' Note
-' ==============================================================
-note right of ConfiguraVincoli
-  Mappato su preferenze.json
-  tramite @JsonProperty (Jackson)
-end note
+ColoriOrario ..> Slot
 
-note right of ReadCsv
-  Legge source.csv
-  (docente, anno, sezione,
-  indirizzo, materia, ore)
-end note
+' backend (OrarioManager) -> altri moduli
+OrarioManager o-- ReadCsv
+OrarioManager o-- ConfiguraVincoli
+OrarioManager o-- GenOrarioVincoli
+OrarioManager o-- Istituto
+OrarioManager ..> ReadVincoliJSON
+OrarioManager ..> BuildCsv
+OrarioManager ..> TabellaOrsonPDF
+OrarioManager ..> Slot
+OrarioManager ..> Lezione
+OrarioManager ..> Classe
+OrarioManager ..> Docente
+OrarioManager ..> Preferenza
 
-' ==============================================================
+' Main & Frontend -> Backend / IO
+Main ..> OrarioManager
+Main ..> HomeWindow
+
+HomeWindow ..> OrarioManager
+HomeWindow ..> ProfessoreOrario
+HomeWindow ..> ClasseOrario
+
+ClasseOrario ..> OrarioManager
+ClasseOrario ..> ColoriOrario
+ClasseOrario ..> Slot
+ClasseOrario ..> PlessoScuola
+ClasseOrario ..> Giorni
+ClasseOrario ..> OrarioLezioni
+ClasseOrario ..> HomeWindow
+
+ProfessoreOrario ..> OrarioManager
+ProfessoreOrario ..> Slot
+ProfessoreOrario ..> Docente
+ProfessoreOrario ..> Giorni
+ProfessoreOrario ..> OrarioLezioni
+ProfessoreOrario ..> HomeWindow
+
+
 ' Legenda
-' ==============================================================
 package "Legenda" <<Rectangle>> {
     ' Visibilità
     rectangle Vis [
         **Visibilità**
         <color:#2E7D32>●</color> public
-        <color:#D32F2F>■</color>  private
-        <color:#F57C00>◆</color>  protected
-        <color:#1976D2>▲</color>  package-private
+        <color:#D32F2F>■</color> private
+        <color:#F57C00>◆</color> protected
+        <color:#1976D2>▲</color> package-private
     ]
 
     ' Tipi di elemento
-    class "class" as t_class
-    enum "enum" as t_enum
-    exception "exception" as t_exception
-    record "record" as t_record
+    class "class"
+    enum "enum"
+    record "record"
 
     ' Relazioni
     class Padre

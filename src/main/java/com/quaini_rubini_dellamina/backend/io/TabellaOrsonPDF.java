@@ -38,10 +38,15 @@ public class TabellaOrsonPDF {
             dati[ora][0] = OrarioLezioni.getNome(ora);
         }
 
-        // Recupera la mappa dei colori delegando a ColoriOrario
-        Map<String, Color> coloriMaterie = ColoriOrario.buildColoriMaterie(slotPDF);
+        // Solo slot con lezione valida (scarta vuoti e null)
+        List<Slot> slotConLezione = slotPDF.stream()
+                .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
+                .toList();
 
-        for (Slot slot : slotPDF) {
+        // Recupera la mappa dei colori solo sugli slot validi
+        Map<String, Color> coloriMaterie = ColoriOrario.buildColoriMaterie(slotConLezione);
+
+        for (Slot slot : slotConLezione) {
             if (!slot.isAssegnato()) continue;
             int g = slot.indexGiorno();
             int o = slot.indexOra();
@@ -58,7 +63,10 @@ public class TabellaOrsonPDF {
             }
         }
 
-        Lezione primaLezione = slotPDF.get(0).getLezione();
+        Lezione primaLezione = slotConLezione.stream()
+                .map(Slot::getLezione)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Nessuna lezione da esportare"));
         String nomeORClasse;
         String tit;
         if (isClasse) {

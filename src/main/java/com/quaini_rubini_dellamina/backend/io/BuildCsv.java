@@ -22,6 +22,10 @@ public class BuildCsv {
         for (String[] riga : griglia)
             Arrays.fill(riga,"");
 
+        slotAssegnati = slotAssegnati.stream()
+                .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
+                .toList();
+
         for (Slot slot : slotAssegnati) {
             if (!slot.isAssegnato()) continue;
             int g = slot.indexGiorno();

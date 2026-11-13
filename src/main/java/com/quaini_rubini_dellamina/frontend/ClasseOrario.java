@@ -26,6 +26,7 @@ public class ClasseOrario extends JFrame {
     private final JButton btnTema;
     private final DefaultTableModel tableModel;
     private List<Slot> slotsCorrente = null;
+    private Map<String, Color> mappaColori = Collections.emptyMap();
 
     public ClasseOrario(String p) {
         super("Orario Classi - Plesso " + p.toUpperCase());
@@ -157,8 +158,7 @@ public class ClasseOrario extends JFrame {
                 setFont(getFont().deriveFont(Font.PLAIN));
 
                 // Cella occupata: assegna il colore dinamico legato alla materia
-                if (value != null && !value.toString().trim().isEmpty() && slotsCorrente != null) {
-                    Map<String, Color> mappaColori = ColoriOrario.buildColoriMaterie(slotsCorrente);
+                if ((value != null && !value.toString().trim().isEmpty() && slotsCorrente != null) ) {
                     String testo = value.toString();
 
                     // Estrazione del nome materia dal blocco HTML <html><center>MATERIA<br>(DOCENTE)</center></html>
@@ -242,7 +242,10 @@ public class ClasseOrario extends JFrame {
             }
 
             slotsCorrente = OrarioManager.getInstance().getOrarioClasse(chiaveClasse);
-
+            mappaColori = ColoriOrario.buildColoriMaterie(
+                    slotsCorrente.stream()
+                            .filter(s -> s != null && s.getLezione() != null && s.getLezione().getMateria() != null)
+                            .toList());
             // Svuota la tabella
             for (int row = 0; row < tableModel.getRowCount(); row++)
                 for (int col = 1; col < tableModel.getColumnCount(); col++)
