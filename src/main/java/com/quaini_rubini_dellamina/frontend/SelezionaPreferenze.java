@@ -20,7 +20,6 @@ import java.io.IOException;
 
 public class SelezionaPreferenze extends JFrame {
 
-    // ATTRIBUTI E COMPONENTI UI
     private final JButton btnTema;
     private final JPanel cardForm;
     private final JComboBox<String> comboDocente;
@@ -30,7 +29,6 @@ public class SelezionaPreferenze extends JFrame {
     private final JCheckBox chkNoUltimaOra;
     private final JCheckBox chkRiduciOreBuche;
 
-    // COSTRUTTORE E INIZIALIZZAZIONE FINESTRA
     public SelezionaPreferenze() {
         super("Preferenze Docenti - Istituto Saraceno Romegialli");
 
@@ -43,7 +41,7 @@ public class SelezionaPreferenze extends JFrame {
         Font fontLabel  = new Font("SansSerif", Font.BOLD, 14);
         Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
-        // HEADER E CAMBIO TEMA
+        // SEZIONE 1: INTESTAZIONE E PULSANTE CAMBIO TEMA
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -64,13 +62,14 @@ public class SelezionaPreferenze extends JFrame {
         headerPanel.add(btnTema, BorderLayout.EAST);
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // MODULO SELEZIONE PREFERENZE
+        // SEZIONE 2: SELEZIONE PREFERENZE E VINCOLI
         cardForm = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 12, 10, 12);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
 
+        // Selezione Docente
         JLabel lblDocente = new JLabel("Docente:", createAdaptiveIcon("icons/user.svg", 16, 16), JLabel.LEFT);
         lblDocente.setFont(fontLabel);
         lblDocente.setIconTextGap(8);
@@ -78,6 +77,7 @@ public class SelezionaPreferenze extends JFrame {
         comboDocente = new JComboBox<>(caricaDocenti());
         comboDocente.setPreferredSize(new Dimension(240, 34));
 
+        // Selezione Giorno Libero
         JLabel lblGiorno = new JLabel("Giorno libero:", createAdaptiveIcon("icons/calendar.svg", 16, 16), JLabel.LEFT);
         lblGiorno.setFont(fontLabel);
         lblGiorno.setIconTextGap(8);
@@ -86,6 +86,7 @@ public class SelezionaPreferenze extends JFrame {
         comboGiornoLibero = new JComboBox<>(giorni);
         comboGiornoLibero.setPreferredSize(new Dimension(240, 34));
 
+        // Limite Ore Giornaliere
         JLabel lblLimiteOre = new JLabel("Limite ore giornaliere (3 - 8):",
                 createAdaptiveIcon("icons/school.svg", 16, 16), JLabel.LEFT);
         lblLimiteOre.setFont(fontLabel);
@@ -95,6 +96,7 @@ public class SelezionaPreferenze extends JFrame {
         spinnerLimiteOre.setPreferredSize(new Dimension(90, 34));
         spinnerLimiteOre.setFont(new Font("SansSerif", Font.BOLD, 14));
 
+        // Checkbox Vincoli Orari
         chkNoPrimaOra = new JCheckBox("Evita la prima ora (no-prima-h)");
         chkNoPrimaOra.setFont(new Font("SansSerif", Font.PLAIN, 14));
         chkNoPrimaOra.setOpaque(false);
@@ -107,6 +109,7 @@ public class SelezionaPreferenze extends JFrame {
         chkRiduciOreBuche.setFont(new Font("SansSerif", Font.PLAIN, 14));
         chkRiduciOreBuche.setOpaque(false);
 
+        // Posizionamento Componenti nel GridBagLayout
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.4;
         cardForm.add(lblDocente, gbc);
         gbc.gridx = 1; gbc.weightx = 0.6;
@@ -133,7 +136,7 @@ public class SelezionaPreferenze extends JFrame {
 
         mainPanel.add(cardForm, BorderLayout.CENTER);
 
-        // BOTTONI INFERIORI
+        // SEZIONE 3: BARRA INFERIORE CON PULSANTI DI AZIONE
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setOpaque(false);
 
@@ -152,7 +155,7 @@ public class SelezionaPreferenze extends JFrame {
         bottomPanel.add(btnApplica, BorderLayout.EAST);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // GESTIONE EVENTI
+        // SEZIONE 4: ACTION LISTENER
         comboDocente.addActionListener(e -> caricaPreferenzeEsistenti());
         caricaPreferenzeEsistenti();
 
@@ -203,7 +206,7 @@ public class SelezionaPreferenze extends JFrame {
         setVisible(true);
     }
 
-    // METODI DI SUPPORTO E TEMA
+    // LETTURA E CARICAMENTO DATI (DOCENTI E PREFERENZE)
     private void caricaPreferenzeEsistenti() {
         if (comboDocente.getSelectedItem() == null) return;
         String nomeProf = comboDocente.getSelectedItem().toString();
@@ -253,6 +256,7 @@ public class SelezionaPreferenze extends JFrame {
         }
     }
 
+    // GESTIONE ICONE E TEMI (CHIARO / SCURO)
     private FlatSVGIcon createAdaptiveIcon(String path, int width, int height) {
         FlatSVGIcon icon = new FlatSVGIcon(path, width, height);
         icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> UIManager.getColor("Label.foreground")));
@@ -298,4 +302,3 @@ public class SelezionaPreferenze extends JFrame {
         }
     }
 }
-
