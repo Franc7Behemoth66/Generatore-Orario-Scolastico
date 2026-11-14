@@ -1,0 +1,18 @@
+{
+  "nome-scuola" : "Saraceno-Romegialli",
+  "preferenze" : [ {
+    "docente" : "A015D",
+    "giorno-libero" : "",
+    "limite-h-giornaliere" : 8,
+    "no-prima-h" : false,
+    "no-ultima-h" : false,
+    "riduci-ore-buche" : true
+  }, {
+    "docente" : "Cusini Adele",
+    "giorno-libero" : "",
+    "limite-h-giornaliere" : 5,
+    "no-prima-h" : false,
+    "no-ultima-h" : false,
+    "riduci-ore-buche" : true
+  } ]
+}

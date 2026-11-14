@@ -15,6 +15,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ClasseOrario extends JFrame {
 
@@ -129,7 +130,8 @@ public class ClasseOrario extends JFrame {
         for (int i = 1; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(160);
         }
-        table.setRowHeight(50);
+        table.setRowHeight(48);
+        table.setRowHeight(OrarioLezioni.PAUSA.ordinal(), 26);
         table.setFont(new Font("SansSerif", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
@@ -276,7 +278,9 @@ public class ClasseOrario extends JFrame {
                 int giorno = slot.indexGiorno();
                 Lezione l  = slot.getLezione();
                 String materia = l.getMateria() != null ? l.getMateria().getNome() : "";
-                String docenti = l.getNomiDocenti();
+                String docenti = l.getAllDocenti().stream()
+                        .map(Docente::getNome)
+                        .collect(Collectors.joining("<br>"));
                 String testoCella = "<html><center>" + materia + "<br>(" + docenti + ")</center></html>";
 
                 tableModel.setValueAt(testoCella, ora, giorno + 1);
@@ -290,6 +294,21 @@ public class ClasseOrario extends JFrame {
                 if (haPomeriggio[g]) {
                     tableModel.setValueAt("PAUSA", rigaPausa, g + 1);
                 }
+            }
+
+            for (int row = 0; row < table.getRowCount(); row++) {
+                if (row == rigaPausa) {
+                    table.setRowHeight(row, 26);
+                    continue;
+                }
+                int maxRighe = 1;
+                for (int col = 1; col < table.getColumnCount(); col++) {
+                    Object val = table.getValueAt(row, col);
+                    if (val != null && !val.toString().isEmpty()) {
+                        maxRighe = Math.max(maxRighe, val.toString().split("<br>").length);
+                    }
+                }
+                table.setRowHeight(row, Math.max(46, maxRighe * 17));
             }
 
             int totOre = (int) slotsCorrente.stream()
@@ -348,7 +367,7 @@ public class ClasseOrario extends JFrame {
             }
         });
 
-        setSize(1080, 740);
+        setSize(1120, 780);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);

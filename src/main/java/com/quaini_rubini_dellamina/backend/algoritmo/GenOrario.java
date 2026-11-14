@@ -166,8 +166,8 @@ public class GenOrario {
         return "TUR".equalsIgnoreCase(indirizzo) || "AFM".equalsIgnoreCase(indirizzo);
     }
 
-    // Sincronizza le coppie di classi dello stesso indirizzo e anno con lingue separate (es. 4A-TUR Francese / 4B-TUR Tedesco)
-    private void sincronizzaLingueTur(Set<Classe> classi, List<Lezione> lessons) {
+    // Sincronizza le coppie di classi parallele TUR e AFM dello stesso indirizzo e anno con lingue separate (es. 4A Francese / 4B Tedesco)
+    private void sincronizzaLingue(Set<Classe> classi, List<Lezione> lessons) {
         slotPreassegnati.clear();
         if (classi == null || lessons == null) return;
 
@@ -244,7 +244,7 @@ public class GenOrario {
                 && lezioni.getFirst().getClasse() != null
                 && haSdoppiamentoLingue(lezioni.getFirst().getClasse().getIndirizzo());
         if (sdoppia && perMateria.containsKey("TEDESCO") && perMateria.containsKey("FRANCESE")) {
-            slots.addAll(sdoppiaLingueTur(perMateria.remove("TEDESCO"), perMateria.remove("FRANCESE")));
+            slots.addAll(sdoppiaLingue(perMateria.remove("TEDESCO"), perMateria.remove("FRANCESE")));
         }
 
         for (List<Lezione> gruppo : perMateria.values())
@@ -253,7 +253,7 @@ public class GenOrario {
         return slots;
     }
 
-    private List<Slot> sdoppiaLingueTur(List<Lezione> tedList, List<Lezione> fraList) {
+    private List<Slot> sdoppiaLingue(List<Lezione> tedList, List<Lezione> fraList) {
         Lezione ted = tedList.getFirst();
         Lezione fra = fraList.getFirst();
         int maxOre = Math.max(ted.getOreSettimanali(), fra.getOreSettimanali());
@@ -368,8 +368,8 @@ public class GenOrario {
         Set<Classe> classi = r.getAllClassi();
         Istituto school = new Istituto(classi, r.getAllDocenti());
 
-        // 1. Pre-assegna le ore incrociate TEDESCO <-> FRANCESE tra classi TUR parallele
-        sincronizzaLingueTur(classi, lessons);
+        // 1. Pre-assegna le ore incrociate TEDESCO <-> FRANCESE tra classi parallele TUR e AFM
+        sincronizzaLingue(classi, lessons);
 
         // 2. Prima le classi con più compresenze (più vincolate)
         Map<String, Long> compresenze = new HashMap<>();

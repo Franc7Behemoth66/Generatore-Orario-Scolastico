@@ -119,7 +119,8 @@ public class ProfessoreOrario extends JFrame {
         };
 
         JTable table = new JTable(tableModel);
-        table.setRowHeight(58);
+        table.setRowHeight(46);
+        table.setRowHeight(OrarioLezioni.PAUSA.ordinal(), 26);
         table.setFont(new Font("SansSerif", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
@@ -262,10 +263,10 @@ public class ProfessoreOrario extends JFrame {
                 if (l.hasCompresenza()) {
                     String colleghi = l.getAllDocenti().stream()
                             .map(Docente::getNome)
-                            .filter(n -> !n.equalsIgnoreCase(nomeProf))
-                            .collect(Collectors.joining(", "));
+                            .filter(n -> !n.equals(nomeProf))
+                            .collect(Collectors.joining("<br>"));
                     testoCella = "<html><center>" + chiaveClasse
-                            + "<br><small>(comp. " + colleghi + ")</small></center></html>";
+                            + "<br><small>(comp.<br>" + colleghi + ")</small></center></html>";
                 }
                 tableModel.setValueAt(testoCella, ora, giorno + 1);
 
@@ -278,6 +279,21 @@ public class ProfessoreOrario extends JFrame {
                 if (haPomeriggio[g]) {
                     tableModel.setValueAt("PAUSA", rigaPausa, g + 1);
                 }
+            }
+    // Riduce l'altezza della pausa e adatta le righe delle lezioni in base al numero di docenti in compresenza
+            for (int row = 0; row < table.getRowCount(); row++) {
+                if (row == rigaPausa) {
+                    table.setRowHeight(row, 26);
+                    continue;
+                }
+                int maxRighe = 1;
+                for (int col = 1; col < table.getColumnCount(); col++) {
+                    Object val = table.getValueAt(row, col);
+                    if (val != null && !val.toString().isEmpty()) {
+                        maxRighe = Math.max(maxRighe, val.toString().split("<br>").length);
+                    }
+                }
+                table.setRowHeight(row, Math.max(46, maxRighe * 17));
             }
 
             int totOre = (int) slotsCorrente.stream()
@@ -335,7 +351,7 @@ public class ProfessoreOrario extends JFrame {
             }
         });
 
-        setSize(980, 660);
+        setSize(1080, 780);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);

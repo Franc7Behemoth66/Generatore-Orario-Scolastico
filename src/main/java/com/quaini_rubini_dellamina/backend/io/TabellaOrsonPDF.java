@@ -24,7 +24,7 @@ public class TabellaOrsonPDF {
 
     public static void creaPDF(List<Slot> slotPDF, String dir, boolean isClasse) {
         PDFDocument pdfDoc = new PDFDocument();
-        Page page = pdfDoc.createPage(new Rectangle(1500, 800));
+        Page page = pdfDoc.createPage(new Rectangle(1850, 800));
         PDFGraphics2D g2 = page.getGraphics2D();
         g2.setRenderingHint(PDFHints.KEY_DRAW_STRING_TYPE, PDFHints.VALUE_DRAW_STRING_TYPE_VECTOR);
 
@@ -39,10 +39,9 @@ public class TabellaOrsonPDF {
         }
 
         int rigaPausa = OrarioLezioni.PAUSA.ordinal();
-        for (int col = 1; col < colonne.length; col++) {
-            dati[rigaPausa][col] = "PAUSA";
-            colori[rigaPausa][col] = new Color(230, 230, 230);
-        }
+        int colonnaPausa = Giorni.MARTEDI.ordinal() + 1 ;
+        dati[rigaPausa][colonnaPausa] = "PAUSA";
+        colori[rigaPausa][colonnaPausa] = new Color(230, 230, 230);
 
         List<Slot> slotConLezione = slotPDF.stream()
                 .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
@@ -85,7 +84,7 @@ public class TabellaOrsonPDF {
         int xInizio = 40;
         int yInizio = 60;
         int altezzaRiga = 42;
-        int[] larghezze = {60, 250, 250, 250, 250, 250};
+        int[] larghezze = {70, 340, 340, 340, 340, 340};
         int larghezzaTotale = Arrays.stream(larghezze).sum();
         int altezzaTabellaTotale = altezzaRiga * (dati.length + 1);
 
