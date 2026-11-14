@@ -76,14 +76,17 @@ public class GenOrarioVincoli extends GenOrario {
         return true;
     }
 
-    // Vincolo non obbligatorio: riduzione delle ore buche (considera entrambi i docenti in compresenza)
+    // Vincolo non obbligatorio: riduzione delle ore buche (considera tutti i docenti in compresenza)
     @Override
-    protected void ordinaSlotLiberi(List<int[]> liberi, String doc1, String doc2) {
-        if (liberi == null || liberi.size() <= 1) return;
-        liberi.sort(Comparator.comparingInt(slot ->
-                calcolaPenalitaSoft(doc1, slot[0], slot[1])
-                        + (doc2 != null ? calcolaPenalitaSoft(doc2, slot[0], slot[1]) : 0)
-        ));
+    protected void ordinaSlotLiberi(List<int[]> liberi, List<Docente> docenti) {
+        if (liberi == null || liberi.size() <= 1 || docenti == null) return;
+        liberi.sort(Comparator.comparingInt(slot -> {
+            int penalita = 0;
+            for (Docente d : docenti) {
+                penalita += calcolaPenalitaSoft(d.getNome(), slot[0], slot[1]);
+            }
+            return penalita;
+        }));
     }
 
     public int calcolaPenalitaSoft(String nomeDocente, int giorno, int ora) {

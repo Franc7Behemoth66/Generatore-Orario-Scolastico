@@ -16,6 +16,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ProfessoreOrario extends JFrame {
 
@@ -247,11 +248,12 @@ public class ProfessoreOrario extends JFrame {
 
                 String testoCella = chiaveClasse;
                 if (l.hasCompresenza()) {
-                    String collega = l.getDocente().getNome().equalsIgnoreCase(nomeProf)
-                            ? l.getDocenteCompresenza().getNome()
-                            : l.getDocente().getNome();
+                    String colleghi = l.getAllDocenti().stream()
+                            .map(Docente::getNome)
+                            .filter(n -> !n.equalsIgnoreCase(nomeProf))
+                            .collect(Collectors.joining(", "));
                     testoCella = "<html><center>" + chiaveClasse
-                            + "<br><small>(comp. " + collega + ")</small></center></html>";
+                            + "<br><small>(comp. " + colleghi + ")</small></center></html>";
                 }
                 tableModel.setValueAt(testoCella, ora, giorno + 1);
             }
@@ -324,7 +326,6 @@ public class ProfessoreOrario extends JFrame {
         if (gLibero >= 0 && gLibero == giorno) return true;
         if (prefCorrente.noPrimaH() && ora == 0) return true;
         if (prefCorrente.noUltimaH() && ora == (Slot.ORE_GIORNO - 1)) return true;
-        if (prefCorrente.noUltimaH() && ora == GenOrarioVincoli.ultimaOraGiorno(giorno)) return true;
         return false;
     }
 

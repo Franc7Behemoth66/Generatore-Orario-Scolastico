@@ -61,15 +61,10 @@ public class Istituto {
 
                 for (Slot s : provvisorioHClasse) {
                     if (s != null && s.isAssegnato() && s.getLezione() != null) {
-                        Lezione l = s.getLezione();
-                        boolean matchPrincipale = l.getDocente() != null
-                                && l.getDocente().getNome() != null
-                                && l.getDocente().getNome().equals(chiaveDocente);
-                        boolean matchCompresenza = l.getDocenteCompresenza() != null
-                                && l.getDocenteCompresenza().getNome() != null
-                                && l.getDocenteCompresenza().getNome().equals(chiaveDocente);
+                        boolean match = s.getLezione().getAllDocenti().stream()
+                                .anyMatch(d -> d != null && d.getNome() != null && d.getNome().equals(chiaveDocente));
 
-                        if (matchPrincipale || matchCompresenza) {
+                        if (match) {
                             risultato.add(s);
                         }
                     }
