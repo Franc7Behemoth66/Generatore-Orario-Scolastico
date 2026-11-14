@@ -25,4 +25,8 @@ public class Materia {
         return nome.equalsIgnoreCase(((Materia) o).nome);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(nome);
+    }
 }

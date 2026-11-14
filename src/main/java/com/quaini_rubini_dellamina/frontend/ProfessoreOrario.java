@@ -318,6 +318,7 @@ public class ProfessoreOrario extends JFrame {
         if (gLibero >= 0 && gLibero == giorno) return true;
         if (prefCorrente.noPrimaH() && ora == 0) return true;
         if (prefCorrente.noUltimaH() && ora == (Slot.ORE_GIORNO - 1)) return true;
+        if (prefCorrente.noUltimaH() && ora == GenOrarioVincoli.ultimaOraGiorno(giorno)) return true;
         return false;
     }
 
