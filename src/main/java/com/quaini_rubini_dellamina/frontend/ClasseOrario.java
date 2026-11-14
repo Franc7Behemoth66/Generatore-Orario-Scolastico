@@ -113,8 +113,7 @@ public class ClasseOrario extends JFrame {
         Object[][] data = new Object[orariValues.length][columnNames.length];
         for (int i = 0; i < orariValues.length; i++) {
             data[i][0] = orariValues[i].getNome();
-            String valDefault = (i == OrarioLezioni.PAUSA.ordinal()) ? "PAUSA" : "";
-            for (int j = 1; j < columnNames.length; j++) data[i][j] = valDefault;
+            for (int j = 1; j < columnNames.length; j++) data[i][j] = "";
         }
 
         tableModel = new DefaultTableModel(data, columnNames) {
@@ -150,7 +149,7 @@ public class ClasseOrario extends JFrame {
                     return c;
                 }
 
-                if (row == OrarioLezioni.PAUSA.ordinal()) {
+                if (row == OrarioLezioni.PAUSA.ordinal() && value != null && !value.toString().trim().isEmpty()) {
                     boolean isDark = FlatLaf.isLafDark();
                     c.setBackground(isDark ? new Color(55, 55, 60) : new Color(232, 232, 236));
                     c.setForeground(isDark ? new Color(180, 180, 185) : new Color(100, 100, 105));
@@ -264,10 +263,11 @@ public class ClasseOrario extends JFrame {
 
             int rigaPausa = OrarioLezioni.PAUSA.ordinal();
             for (int row = 0; row < tableModel.getRowCount(); row++) {
-                String valDefault = (row == rigaPausa) ? "PAUSA" : "";
                 for (int col = 1; col < tableModel.getColumnCount(); col++)
-                    tableModel.setValueAt(valDefault, row, col);
+                    tableModel.setValueAt("", row, col);
             }
+
+            boolean[] haPomeriggio = new boolean[Giorni.values().length];
 
             for (Slot slot : slotsCorrente) {
                 if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
@@ -280,6 +280,16 @@ public class ClasseOrario extends JFrame {
                 String testoCella = "<html><center>" + materia + "<br>(" + docenti + ")</center></html>";
 
                 tableModel.setValueAt(testoCella, ora, giorno + 1);
+
+                if (ora > rigaPausa && giorno >= 0 && giorno < haPomeriggio.length) {
+                    haPomeriggio[giorno] = true;
+                }
+            }
+
+            for (int g = 0; g < haPomeriggio.length; g++) {
+                if (haPomeriggio[g]) {
+                    tableModel.setValueAt("PAUSA", rigaPausa, g + 1);
+                }
             }
 
             int totOre = (int) slotsCorrente.stream()

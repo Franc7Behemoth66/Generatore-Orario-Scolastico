@@ -139,6 +139,14 @@ public class ProfessoreOrario extends JFrame {
                     return c;
                 }
 
+                if (row == OrarioLezioni.PAUSA.ordinal() && value != null && !value.toString().trim().isEmpty()) {
+                    boolean isDark = FlatLaf.isLafDark();
+                    c.setBackground(isDark ? new Color(55, 55, 60) : new Color(232, 232, 236));
+                    c.setForeground(isDark ? new Color(180, 180, 185) : new Color(100, 100, 105));
+                    setFont(getFont().deriveFont(Font.ITALIC));
+                    return c;
+                }
+
                 setFont(getFont().deriveFont(Font.PLAIN));
 
                 if (value != null && !value.toString().trim().isEmpty()) {
@@ -234,9 +242,13 @@ public class ProfessoreOrario extends JFrame {
                     ? analisi.getElencoSegnalazioni()
                     : Collections.emptyList();
 
+            int rigaPausa = OrarioLezioni.PAUSA.ordinal();
+
             for (int row = 0; row < tableModel.getRowCount(); row++)
                 for (int col = 1; col < tableModel.getColumnCount(); col++)
                     tableModel.setValueAt("", row, col);
+
+            boolean[] haPomeriggio = new boolean[Giorni.values().length];
 
             for (Slot slot : slotsCorrente) {
                 if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
@@ -256,6 +268,16 @@ public class ProfessoreOrario extends JFrame {
                             + "<br><small>(comp. " + colleghi + ")</small></center></html>";
                 }
                 tableModel.setValueAt(testoCella, ora, giorno + 1);
+
+                if (ora > rigaPausa && giorno >= 0 && giorno < haPomeriggio.length) {
+                    haPomeriggio[giorno] = true;
+                }
+            }
+
+            for (int g = 0; g < haPomeriggio.length; g++) {
+                if (haPomeriggio[g]) {
+                    tableModel.setValueAt("PAUSA", rigaPausa, g + 1);
+                }
             }
 
             int totOre = (int) slotsCorrente.stream()
