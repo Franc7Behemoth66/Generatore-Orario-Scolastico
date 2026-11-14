@@ -6,7 +6,10 @@ public enum OrarioLezioni {
     TERZA("10-11"),
     QUARTA("11-12"),
     QUINTA("12-13"),
-    SESTA("13-14");
+    SESTA("13-14"),
+    PAUSA("14-15"),
+    SETTIMA("15-16"),
+    OTTAVA("16-17");
 
     private final String nome;
 

@@ -10,11 +10,26 @@ import java.util.*;
 public class GenOrario {
 
     protected static final int GIORNI  = Slot.GIORNI_SETTIMANA; // 5
-    protected static final int ORE     = Slot.ORE_GIORNO;       // 6
+    protected static final int ORE     = Slot.ORE_GIORNO;       // 9 (6 mattina + 1 pausa + 2 pomeriggio martedì)
 
     protected final Set<String> docentiUsati = new HashSet<>(); // Set (Lista univoca) dei docenti occupati
     protected final Map<String, int[]> oreDocenteGiorno = new HashMap<>(); // ore per docente e giorno
     protected final Map<String, List<String>> erroriClassi = new LinkedHashMap<>();
+
+    // Prime 6 ore (8-14) tutti i giorni; pausa (14-15) mai assegnabile; 15-17 solo al martedì
+    public static boolean isSlotEsistente(int giorno, int ora) {
+        int idxPausa = OrarioLezioni.PAUSA.ordinal();
+        if (ora == idxPausa) return false;
+        if (ora < idxPausa) return true;
+        return giorno == Giorni.MARTEDI.ordinal();
+    }
+
+    // Ultima ora della giornata: 16-17 (indice 8) al martedì, 13-14 (indice 5) negli altri giorni
+    public static int ultimaOraGiorno(int giorno) {
+        return (giorno == Giorni.MARTEDI.ordinal())
+                ? OrarioLezioni.OTTAVA.ordinal()
+                : OrarioLezioni.SESTA.ordinal();
+    }
 
     public List<Slot> genOrarioOnClasse(List<Lezione> tutteLeLezioni, String keyClasse) {
         List<Lezione> lezClasse = new ArrayList<>();
@@ -32,7 +47,7 @@ public class GenOrario {
     }
 
     protected List<Slot> generaCasualePerClasse(List<Lezione> lezioni, String keyClasse) {
-        final int MAX_SLOT = GIORNI * ORE; // 30
+        final int MAX_SLOT = 32; // 5 giorni x 6 ore + 2 ore pomeriggio martedì
         final int MAX_TENTATIVI = 200;
 
         Set<String> docentiUsatiBackup = new HashSet<>(docentiUsati);
@@ -92,7 +107,7 @@ public class GenOrario {
                 }
                 for (int g = 0; g < GIORNI; g++) {
                     for (int o = 0; o < ORE; o++) {
-                        if (!occupato[g][o]) {
+                        if (isSlotEsistente(g, o) && !occupato[g][o]) {
                             assegnati.add(Slot.vuoto(g, o));
                         }
                     }
@@ -157,7 +172,7 @@ public class GenOrario {
         int piazzati = assegnati.size();
         for (int g = 0; g < GIORNI; g++) {
             for (int o = 0; o < ORE; o++) {
-                if (!occupato[g][o]) {
+                if (isSlotEsistente(g, o) && !occupato[g][o]) {
                     assegnati.add(Slot.vuoto(g, o));
                 }
             }
@@ -241,6 +256,7 @@ public class GenOrario {
         List<int[]> liberi = new ArrayList<>();
         for (int g = 0; g < GIORNI; g++) {
             for (int o = 0; o < ORE; o++) {
+                if (!isSlotEsistente(g, o)) continue;
                 boolean ok1 = isSlotValido(doc1, g, o);
                 boolean ok2 = (doc2 == null) || isSlotValido(doc2, g, o);
                 if (!occupato[g][o] && ok1 && ok2) {

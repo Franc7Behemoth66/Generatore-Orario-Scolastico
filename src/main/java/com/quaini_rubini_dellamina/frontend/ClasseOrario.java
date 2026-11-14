@@ -117,7 +117,8 @@ public class ClasseOrario extends JFrame {
         Object[][] data = new Object[orariValues.length][columnNames.length];
         for (int i = 0; i < orariValues.length; i++) {
             data[i][0] = orariValues[i].getNome();
-            for (int j = 1; j < columnNames.length; j++) data[i][j] = "";
+            String valDefault = (i == OrarioLezioni.PAUSA.ordinal()) ? "PAUSA" : "";
+            for (int j = 1; j < columnNames.length; j++) data[i][j] = valDefault;
         }
 
         tableModel = new DefaultTableModel(data, columnNames) {
@@ -133,7 +134,7 @@ public class ClasseOrario extends JFrame {
         for (int i = 1; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(160);
         }
-        table.setRowHeight(58);
+        table.setRowHeight(50);
         table.setFont(new Font("SansSerif", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
@@ -150,6 +151,14 @@ public class ClasseOrario extends JFrame {
                     c.setBackground(table.getTableHeader().getBackground());
                     c.setForeground(table.getTableHeader().getForeground());
                     setFont(getFont().deriveFont(Font.BOLD));
+                    return c;
+                }
+
+                if (row == OrarioLezioni.PAUSA.ordinal()) {
+                    boolean isDark = FlatLaf.isLafDark();
+                    c.setBackground(isDark ? new Color(55, 55, 60) : new Color(232, 232, 236));
+                    c.setForeground(isDark ? new Color(180, 180, 185) : new Color(100, 100, 105));
+                    setFont(getFont().deriveFont(Font.ITALIC));
                     return c;
                 }
 
@@ -261,9 +270,12 @@ public class ClasseOrario extends JFrame {
                             .filter(s -> s != null && s.getLezione() != null && s.getLezione().getMateria() != null)
                             .toList());
 
-            for (int row = 0; row < tableModel.getRowCount(); row++)
+            int rigaPausa = OrarioLezioni.PAUSA.ordinal();
+            for (int row = 0; row < tableModel.getRowCount(); row++) {
+                String valDefault = (row == rigaPausa) ? "PAUSA" : "";
                 for (int col = 1; col < tableModel.getColumnCount(); col++)
-                    tableModel.setValueAt("", row, col);
+                    tableModel.setValueAt(valDefault, row, col);
+            }
 
             for (Slot slot : slotsCorrente) {
                 if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
@@ -334,7 +346,7 @@ public class ClasseOrario extends JFrame {
             }
         });
 
-        setSize(980, 660);
+        setSize(1080, 740);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);

@@ -16,11 +16,20 @@ public class BuildCsv {
             "src/main/java/com/quaini_rubini_dellamina";
 
 
-    public  static void scriviOrario(List<Slot> slotAssegnati, String outputPath, boolean isClasse ) throws IOException {
+    public static void scriviOrario(List<Slot> slotAssegnati, String outputPath, boolean isClasse) throws IOException {
+        if (slotAssegnati == null || slotAssegnati.isEmpty()) {
+            return;
+        }
+
         // Costruisce una griglia [giorno][ora] → nome materia (stringa vuota se libero)
         String[][] griglia = new String[Slot.GIORNI_SETTIMANA][Slot.ORE_GIORNO];
         for (String[] riga : griglia)
-            Arrays.fill(riga,"");
+            Arrays.fill(riga, "");
+
+        int rigaPausa = OrarioLezioni.PAUSA.ordinal();
+        for (int giorno = 0; giorno < Slot.GIORNI_SETTIMANA; giorno++) {
+            griglia[giorno][rigaPausa] = "PAUSA";
+        }
 
         slotAssegnati = slotAssegnati.stream()
                 .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
@@ -33,15 +42,12 @@ public class BuildCsv {
             if (g >= 0 && g < Slot.GIORNI_SETTIMANA && o >= 0 && o < Slot.ORE_GIORNO) {
                 Lezione l = slot.getLezione();
                 // Formato cella: materia (docente)
-                if(isClasse)
-                    griglia[g][o] = l.getMateria().getNome() + " (" + l.getDocente().getNome() + ")";
-                // Formato cella: key della classe
+                if (isClasse)
+                    griglia[g][o] = l.getMateria().getNome() + " (" + l.getNomiDocenti() + ")";
+                    // Formato cella: key della classe
                 else
                     griglia[g][o] = l.getClasse().getChiave();
             }
-        }
-        if (slotAssegnati == null || slotAssegnati.isEmpty()) {
-            return;
         }
 
         Slot primoValido = null;
@@ -73,15 +79,15 @@ public class BuildCsv {
         try (CSVWriter writer = new CSVWriter(new FileWriter(targetFile))) {
             // Intestazione
             writer.writeNext(new String[]{
-                "Ora",
-                Giorni.LUNEDI.getNome(),
-                Giorni.MARTEDI.getNome(),
-                Giorni.MERCOLEDI.getNome(),
-                Giorni.GIOVEDI.getNome(),
-                Giorni.VENERDI.getNome()
+                    "Ora",
+                    Giorni.LUNEDI.getNome(),
+                    Giorni.MARTEDI.getNome(),
+                    Giorni.MERCOLEDI.getNome(),
+                    Giorni.GIOVEDI.getNome(),
+                    Giorni.VENERDI.getNome()
             });
 
-            // Righe: una per ogni ora della giornata
+            // Righe: una per ogni ora della giornata (inclusa la pausa 14-15)
             for (int ora = 0; ora < Slot.ORE_GIORNO; ora++) {
                 String[] riga = new String[Slot.GIORNI_SETTIMANA + 1];
                 riga[0] = OrarioLezioni.getNome(ora);
@@ -109,4 +115,3 @@ public class BuildCsv {
         }
     }
 }
-

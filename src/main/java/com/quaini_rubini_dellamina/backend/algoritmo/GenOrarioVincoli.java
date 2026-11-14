@@ -60,8 +60,8 @@ public class GenOrarioVincoli extends GenOrario {
             return false;
         }
 
-        // Obbligo ultima ora libera
-        if (pref.noUltimaH() && ora == (ORE - 1)) {
+        // Obbligo ultima ora libera (16-17 al martedì, 13-14 negli altri giorni)
+        if (pref.noUltimaH() && ora == ultimaOraGiorno(giorno)) {
             return false;
         }
 
@@ -125,6 +125,10 @@ public class GenOrarioVincoli extends GenOrario {
         int min = Collections.min(ore);
         int max = Collections.max(ore);
         int span = max - min + 1;
+        int idxPausa = OrarioLezioni.PAUSA.ordinal();
+        if (min < idxPausa && max > idxPausa) {
+            span--; // la pausa (14-15) non viene conteggiata come ora buca
+        }
         return span - ore.size();
     }
 
@@ -249,7 +253,7 @@ public class GenOrarioVincoli extends GenOrario {
                     for (Slot s : oreProf) {
                         if (s == null || s.isVuoto()) continue;
                         if (p.noPrimaH() && s.indexOra() == 0) res.violazioneNoPrimaH = true;
-                        if (p.noUltimaH() && s.indexOra() == (ORE - 1)) res.violazioneNoUltimaH = true;
+                        if (p.noUltimaH() && s.indexOra() == ultimaOraGiorno(s.indexGiorno())) res.violazioneNoUltimaH = true;
                     }
                 }
                 if (p.riduciOreBuche() && bucheTot > 0) {

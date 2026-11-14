@@ -38,12 +38,16 @@ public class TabellaOrsonPDF {
             dati[ora][0] = OrarioLezioni.getNome(ora);
         }
 
-        // Solo slot con lezione valida (scarta vuoti e null)
+        int rigaPausa = OrarioLezioni.PAUSA.ordinal();
+        for (int col = 1; col < colonne.length; col++) {
+            dati[rigaPausa][col] = "PAUSA";
+            colori[rigaPausa][col] = new Color(230, 230, 230);
+        }
+
         List<Slot> slotConLezione = slotPDF.stream()
                 .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
                 .toList();
 
-        // Recupera la mappa dei colori solo sugli slot validi
         Map<String, Color> coloriMaterie = ColoriOrario.buildColoriMaterie(slotConLezione);
 
         for (Slot slot : slotConLezione) {
@@ -54,7 +58,7 @@ public class TabellaOrsonPDF {
                 Lezione l = slot.getLezione();
                 String materia = String.valueOf(l.getMateria().getNome());
                 if (isClasse) {
-                    dati[o][g + 1] = materia + " (" + l.getDocente().getNome() + ")";
+                    dati[o][g + 1] = materia + "\n(" + l.getNomiDocenti() + ")";
                     colori[o][g + 1] = coloriMaterie.get(materia);
                 } else {
                     dati[o][g + 1] = l.getClasse().getChiave();
@@ -80,14 +84,14 @@ public class TabellaOrsonPDF {
 
         int xInizio = 40;
         int yInizio = 60;
-        int altezzaRiga = 30;
+        int altezzaRiga = 42;
         int[] larghezze = {60, 250, 250, 250, 250, 250};
         int larghezzaTotale = Arrays.stream(larghezze).sum();
         int altezzaTabellaTotale = altezzaRiga * (dati.length + 1);
 
         g2.setFont(new Font("SansSerif", Font.BOLD, 17));
-        FontMetrics fm = g2.getFontMetrics();
-        int xTitolo = xInizio + (larghezzaTotale - fm.stringWidth(tit)) / 2;
+        FontMetrics fmTitolo = g2.getFontMetrics();
+        int xTitolo = xInizio + (larghezzaTotale - fmTitolo.stringWidth(tit)) / 2;
         g2.setPaint(new Color(77, 146, 173));
         g2.drawString(tit, xTitolo, 40);
 
@@ -97,11 +101,12 @@ public class TabellaOrsonPDF {
         g2.setPaint(Color.WHITE);
         int xCorrente = xInizio;
         for (int i = 0; i < colonne.length; i++) {
-            g2.drawString(colonne[i], xCorrente + 8, yInizio + 20);
+            g2.drawString(colonne[i], xCorrente + 8, yInizio + 26);
             xCorrente += larghezze[i];
         }
 
         g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        FontMetrics fmCelle = g2.getFontMetrics();
         for (int riga = 0; riga < dati.length; riga++) {
             int yCorrente = yInizio + ((riga + 1) * altezzaRiga);
             xCorrente = xInizio;
@@ -110,8 +115,20 @@ public class TabellaOrsonPDF {
                     g2.setPaint(colori[riga][col]);
                     g2.fillRect(xCorrente, yCorrente, larghezze[col], altezzaRiga);
                 }
-                g2.setPaint(Color.BLACK);
-                g2.drawString(dati[riga][col], xCorrente + 8, yCorrente + 20);
+
+                String testo = dati[riga][col];
+                if (testo != null && !testo.isEmpty()) {
+                    g2.setPaint(Color.BLACK);
+                    String[] righeTesto = testo.split("\n");
+                    int altezzaBlocco = righeTesto.length * fmCelle.getHeight();
+                    int yTesto = yCorrente + (altezzaRiga - altezzaBlocco) / 2 + fmCelle.getAscent();
+
+                    for (String r : righeTesto) {
+                        g2.drawString(r, xCorrente + 8, yTesto);
+                        yTesto += fmCelle.getHeight();
+                    }
+                }
+
                 xCorrente += larghezze[col];
             }
         }
