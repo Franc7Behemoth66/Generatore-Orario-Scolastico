@@ -13,13 +13,7 @@ import java.io.IOException;
 import java.util.*;
 
 /*
-  Classe che ponte tra backend e frontend.
-
-  Responsabilità:
-   - Carica il CSV (ReadCsv) e i vincoli JSON (ReadVincoliJSON)
-   - Genera l'orario completo d'istituto via GenOrarioVincoli
-   - Espone le liste di classi/docenti e gli slot degli orari al frontend
-   - Gestisce l'esportazione PDF e CSV su richiesta della GUI
+  Classe ponte tra backend e frontend.
  */
 public class OrarioManager {
 
@@ -27,7 +21,6 @@ public class OrarioManager {
             "src/main/java/com/quaini_rubini_dellamina/source.csv";
     private static final String DEFAULT_OUTPUT_DIR = "TabelleOrariOutput";
 
-    // per fare in modo che esista una sola instanza
     private static final OrarioManager INSTANCE = new OrarioManager();
 
     private OrarioManager() {}
@@ -41,10 +34,9 @@ public class OrarioManager {
     private GenOrarioVincoli generatore;
     private Istituto istituto;
     private Map<String, GenOrarioVincoli.RisultatoVerificaDocente> analisiDocenti = new HashMap<>();
+    private Map<String, List<String>> erroriClassi = new LinkedHashMap<>();
+    private List<String> erroriCsv = new ArrayList<>();
     private volatile boolean inizializzato = false;
-
-
-    // Inizzializzazione / caricamento dataset
 
     public synchronized void inizializza() {
         if (inizializzato) return;
@@ -55,7 +47,6 @@ public class OrarioManager {
         }
     }
 
-    //Carica un CSV specifico e rigenera l'intero orario d'istituto con vincoli
     public synchronized void caricaDataset(String csvPath) throws IOException, CsvValidationException {
         File fileCsv = new File(csvPath);
         if (!fileCsv.exists())
@@ -64,8 +55,8 @@ public class OrarioManager {
         this.currentCsvPath = csvPath;
         this.reader  = new ReadCsv(csvPath);
         this.lezioni = reader.leggi();
+        this.erroriCsv = new ArrayList<>(reader.getErroriCsv());
 
-        // Vincoli JSON — fallback a lista vuota se il file non è raggiungibile
         try {
             this.vincoli = ReadVincoliJSON.leggi();
         } catch (Exception e) {
@@ -74,14 +65,11 @@ public class OrarioManager {
         }
 
         this.generatore = new GenOrarioVincoli(vincoli);
-
-        // Crea la cartella di output se non esiste
         new File(DEFAULT_OUTPUT_DIR).mkdirs();
 
-        // Genera l'orario completo (scrive anche i CSV per ogni classe/docente)
         this.istituto = generatore.generaIstituto(reader, lezioni, DEFAULT_OUTPUT_DIR);
+        this.erroriClassi = new LinkedHashMap<>(generatore.getErroriClassi());
 
-        // Analisi vincoli e soft-constraint docenti
         if (vincoli != null && istituto != null)
             this.analisiDocenti = GenOrarioVincoli.analizzaOrario(vincoli, istituto);
 
@@ -92,12 +80,10 @@ public class OrarioManager {
                 + istituto.getDocentiUni().size() + " docenti.");
     }
 
-    // Permette il caricamento di un nuovo CSV dall'interfaccia utente
     public synchronized void caricaNuovoCsv(String path) throws IOException, CsvValidationException {
-        inizializzato = false;      // resetta così da poter ricaricare
+        inizializzato = false;
         caricaDataset(path);
     }
-
 
     public boolean isInizializzato() { return inizializzato; }
 
@@ -113,22 +99,16 @@ public class OrarioManager {
         return (istituto != null) ? istituto.getDocentiUni().size() : 0;
     }
 
-    // getter dati (chiamati dal frontend)
-
-
-    // Lista ordinata di tutte le classi dell'istituto
     public synchronized List<Classe> getClassi() {
         if (!inizializzato) inizializza();
         return (istituto != null) ? istituto.getClassiUni() : Collections.emptyList();
     }
 
-    // Lista ordinata di tutti i docenti dell'istituto
     public synchronized List<Docente> getDocenti() {
         if (!inizializzato) inizializza();
         return (istituto != null) ? istituto.getDocentiUni() : Collections.emptyList();
     }
 
-    // Restituisce gli slot dell'orario di una classe (chiave es. "5A-INFO")
     public synchronized List<Slot> getOrarioClasse(String chiaveClasse) {
         if (!inizializzato) inizializza();
         if (istituto == null || chiaveClasse == null) return Collections.emptyList();
@@ -136,7 +116,6 @@ public class OrarioManager {
         return (s != null) ? s : Collections.emptyList();
     }
 
-    // Restituisce gli slot dell'orario di un docente (nome completo)
     public synchronized List<Slot> getOrarioDocente(String nomeDocente) {
         if (!inizializzato) inizializza();
         if (istituto == null || nomeDocente == null) return Collections.emptyList();
@@ -144,15 +123,51 @@ public class OrarioManager {
         return (s != null) ? s : Collections.emptyList();
     }
 
-    // Preferenza del docente (da vincoli JSON)
     public synchronized Preferenza getPreferenzaDocente(String nomeDocente) {
         if (generatore == null || nomeDocente == null) return null;
         return generatore.getPreferenzaDocente(nomeDocente);
     }
 
-    // Risultato analisi vincoli per un docente specifico
     public synchronized GenOrarioVincoli.RisultatoVerificaDocente getAnalisiDocente(String nomeDocente) {
         return (analisiDocenti != null) ? analisiDocenti.get(nomeDocente) : null;
+    }
+
+    public synchronized List<String> getErroriClasse(String chiaveClasse) {
+        if (erroriClassi == null || chiaveClasse == null) return Collections.emptyList();
+        return erroriClassi.getOrDefault(chiaveClasse, Collections.emptyList());
+    }
+
+    public synchronized List<String> getErroriCsv() {
+        return (erroriCsv != null) ? Collections.unmodifiableList(erroriCsv) : Collections.emptyList();
+    }
+
+    public synchronized List<String> getReportErroriEVincoli() {
+        List<String> report = new ArrayList<>();
+
+        if (erroriCsv != null) {
+            for (String errCsv : erroriCsv) {
+                report.add("[ERRORE CSV] " + errCsv);
+            }
+        }
+
+        if (erroriClassi != null) {
+            for (List<String> errs : erroriClassi.values()) {
+                for (String e : errs) {
+                    report.add("[ERRORE GENERAZIONE] " + e);
+                }
+            }
+        }
+
+        if (analisiDocenti != null) {
+            for (GenOrarioVincoli.RisultatoVerificaDocente res : analisiDocenti.values()) {
+                if (res != null && res.haSegnalazioni()) {
+                    for (String msg : res.getElencoSegnalazioni()) {
+                        report.add("Docente " + res.docente + " → " + msg);
+                    }
+                }
+            }
+        }
+        return report;
     }
 
     public synchronized Istituto getIstituto() {
@@ -163,9 +178,6 @@ public class OrarioManager {
     public synchronized ConfiguraVincoli getVincoli() { return vincoli; }
 
     public synchronized List<Lezione> getLezioni() { return lezioni; }
-
-
-    // esportazione PDF e CSV (delegano a BuildCsv / TabellaOrsonPDF)
 
     public synchronized void esportaPdfClasse(String chiaveClasse, String cartella) throws Exception {
         List<Slot> slots = getOrarioClasse(chiaveClasse);

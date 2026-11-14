@@ -23,9 +23,11 @@ public class ClasseOrario extends JFrame {
     private final JComboBox<String> comboAnno;
     private final JComboBox<String> comboChiaveClasse;
     private final JLabel lblInfoBottom;
+    private final JButton btnErroriClasse;
     private final JButton btnTema;
     private final DefaultTableModel tableModel;
     private List<Slot> slotsCorrente = null;
+    private List<String> erroriClasseCorrente = Collections.emptyList();
     private Map<String, Color> mappaColori = Collections.emptyMap();
 
     public ClasseOrario(String p) {
@@ -63,7 +65,6 @@ public class ClasseOrario extends JFrame {
         headerPanel.add(lblTitle, BorderLayout.CENTER);
         headerPanel.add(btnTema, BorderLayout.EAST);
 
-        // Filtri: Anno + Indirizzo -> la 3a combo si aggiorna dinamicamente
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
 
         JLabel lblAnno = new JLabel("Classe:");
@@ -125,16 +126,14 @@ public class ClasseOrario extends JFrame {
 
         JTable table = new JTable(tableModel);
 
-        // Colonna 0 ("ORE"): stretta e fissa (70px)
         table.getColumnModel().getColumn(0).setPreferredWidth(70);
         table.getColumnModel().getColumn(0).setMinWidth(60);
         table.getColumnModel().getColumn(0).setMaxWidth(80);
 
-        // Colonne 1..5 (GIORNI): larghezza preferita maggiore (160px l'una)
         for (int i = 1; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(160);
         }
-        table.setRowHeight(55);
+        table.setRowHeight(58);
         table.setFont(new Font("SansSerif", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
@@ -147,7 +146,6 @@ public class ClasseOrario extends JFrame {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 setHorizontalAlignment(JLabel.CENTER);
 
-                // Colonna 0 ("ORE"): stile intestazione standard
                 if (column == 0) {
                     c.setBackground(table.getTableHeader().getBackground());
                     c.setForeground(table.getTableHeader().getForeground());
@@ -157,11 +155,9 @@ public class ClasseOrario extends JFrame {
 
                 setFont(getFont().deriveFont(Font.PLAIN));
 
-                // Cella occupata: assegna il colore dinamico legato alla materia
-                if ((value != null && !value.toString().trim().isEmpty() && slotsCorrente != null) ) {
+                if ((value != null && !value.toString().trim().isEmpty() && slotsCorrente != null)) {
                     String testo = value.toString();
 
-                    // Estrazione del nome materia dal blocco HTML <html><center>MATERIA<br>(DOCENTE)</center></html>
                     String materia = testo;
                     if (testo.contains("<br>")) {
                         materia = testo.replaceAll("<html><center>", "")
@@ -172,14 +168,13 @@ public class ClasseOrario extends JFrame {
                     Color coloreMateria = mappaColori.get(materia);
                     if (coloreMateria != null) {
                         c.setBackground(coloreMateria);
-                        c.setForeground(new Color(30, 30, 30)); // Testo scuro per contrasto su colore pastello
+                        c.setForeground(new Color(30, 30, 30));
                     } else {
                         boolean isDark = FlatLaf.isLafDark();
                         c.setBackground(isDark ? new Color(0, 70, 140) : new Color(215, 235, 255));
                         c.setForeground(isDark ? Color.WHITE : new Color(10, 40, 80));
                     }
                 } else {
-                    // Cella vuota
                     c.setBackground(table.getBackground());
                     c.setForeground(table.getForeground());
                 }
@@ -191,7 +186,7 @@ public class ClasseOrario extends JFrame {
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // ====================================================
-        // ZONA SUD: BOTTONI + INFO
+        // ZONA SUD: BOTTONI + INFO + SEGNALAZIONI
         // ====================================================
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
@@ -209,9 +204,25 @@ public class ClasseOrario extends JFrame {
         lblInfoBottom = new JLabel("Seleziona una classe per caricare i dati");
         lblInfoBottom.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
+        btnErroriClasse = new JButton("⚠ Dettagli Errori");
+        btnErroriClasse.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btnErroriClasse.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnErroriClasse.putClientProperty("FlatLaf.style",
+                "background: #dc3545; foreground: #ffffff; arc: 10; margin: 6,12,6,12; borderWidth: 0");
+        btnErroriClasse.setVisible(false);
+        btnErroriClasse.addActionListener(e -> {
+            if (!erroriClasseCorrente.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        String.join("\n• ", erroriClasseCorrente),
+                        "Errori Orario Classe",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
         leftBottomPanel.add(btnIndietro);
-        leftBottomPanel.add(Box.createHorizontalStrut(10));
+        leftBottomPanel.add(Box.createHorizontalStrut(8));
         leftBottomPanel.add(lblInfoBottom);
+        leftBottomPanel.add(btnErroriClasse);
 
         JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         JButton btnPdf = new JButton("SALVA PDF", createWhiteIcon("icons/pdfSave.svg", 16, 16));
@@ -238,20 +249,22 @@ public class ClasseOrario extends JFrame {
             String chiaveClasse = (String) comboChiaveClasse.getSelectedItem();
             if (chiaveClasse == null) {
                 lblInfoBottom.setText("Nessuna classe disponibile per i filtri selezionati.");
+                btnErroriClasse.setVisible(false);
                 return;
             }
 
             slotsCorrente = OrarioManager.getInstance().getOrarioClasse(chiaveClasse);
+            erroriClasseCorrente = OrarioManager.getInstance().getErroriClasse(chiaveClasse);
+
             mappaColori = ColoriOrario.buildColoriMaterie(
                     slotsCorrente.stream()
                             .filter(s -> s != null && s.getLezione() != null && s.getLezione().getMateria() != null)
                             .toList());
-            // Svuota la tabella
+
             for (int row = 0; row < tableModel.getRowCount(); row++)
                 for (int col = 1; col < tableModel.getColumnCount(); col++)
                     tableModel.setValueAt("", row, col);
 
-            // Riempie la tabella con i dati
             for (Slot slot : slotsCorrente) {
                 if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
                     continue;
@@ -259,8 +272,8 @@ public class ClasseOrario extends JFrame {
                 int giorno = slot.indexGiorno();
                 Lezione l  = slot.getLezione();
                 String materia = l.getMateria() != null ? l.getMateria().getNome() : "";
-                String docente = l.getDocente() != null ? l.getDocente().getNome() : "";
-                String testoCella = "<html><center>" + materia + "<br>(" + docente + ")</center></html>";
+                String docenti = l.getNomiDocenti();
+                String testoCella = "<html><center>" + materia + "<br>(" + docenti + ")</center></html>";
 
                 tableModel.setValueAt(testoCella, ora, giorno + 1);
             }
@@ -268,14 +281,21 @@ public class ClasseOrario extends JFrame {
             int totOre = (int) slotsCorrente.stream()
                     .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null)
                     .count();
-            lblInfoBottom.setText("Classe: " + chiaveClasse + " • " + totOre + " ore settimanali");
+
+            if (erroriClasseCorrente.isEmpty()) {
+                lblInfoBottom.setText("Classe: " + chiaveClasse + " • " + totOre + " ore settimanali");
+                lblInfoBottom.setForeground(UIManager.getColor("Label.foreground"));
+                btnErroriClasse.setVisible(false);
+            } else {
+                lblInfoBottom.setText("Classe: " + chiaveClasse + " • " + totOre + " ore (⚠ " + erroriClasseCorrente.size() + " errori)");
+                lblInfoBottom.setForeground(new Color(220, 53, 69));
+                btnErroriClasse.setText("⚠ Errori (" + erroriClasseCorrente.size() + ")");
+                btnErroriClasse.setVisible(true);
+            }
 
             table.repaint();
         });
 
-        // ====================================================
-        // LISTENER – SALVA PDF
-        // ====================================================
         btnPdf.addActionListener(e -> {
             if (slotsCorrente == null || slotsCorrente.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
@@ -295,9 +315,6 @@ public class ClasseOrario extends JFrame {
             }
         });
 
-        // ====================================================
-        // LISTENER – SALVA CSV
-        // ====================================================
         btnCsv.addActionListener(e -> {
             if (slotsCorrente == null || slotsCorrente.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
@@ -317,7 +334,7 @@ public class ClasseOrario extends JFrame {
             }
         });
 
-        setSize(950, 650);
+        setSize(980, 660);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);

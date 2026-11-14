@@ -13,10 +13,12 @@ import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.util.List;
 
 public class HomeWindow extends JFrame {
 
     private final JButton btnTema;
+    private final JButton btnSegnalazioni;
     private final JLabel l2;
     private final JLabel lblStats;
     private final JPanel cardConsultazione;
@@ -41,7 +43,7 @@ public class HomeWindow extends JFrame {
         // ====================================================
         JPanel headerPanel = new JPanel(new BorderLayout(15, 0));
         headerPanel.setOpaque(false);
-        headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
 
         JLabel lblTitle = new JLabel("Orario Scolastico");
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 26));
@@ -52,9 +54,14 @@ public class HomeWindow extends JFrame {
         lblSubtitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
         lblSubtitle.setForeground(new Color(160, 160, 160));
 
-        // Label stats aggiornata dinamicamente dal backend
         lblStats = new JLabel();
         lblStats.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+        btnSegnalazioni = new JButton();
+        btnSegnalazioni.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btnSegnalazioni.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnSegnalazioni.addActionListener(e -> mostraReportSegnalazioni());
+
         aggiornaStats();
 
         JPanel titleBox = new JPanel();
@@ -65,6 +72,8 @@ public class HomeWindow extends JFrame {
         titleBox.add(lblSubtitle);
         titleBox.add(Box.createVerticalStrut(6));
         titleBox.add(lblStats);
+        titleBox.add(Box.createVerticalStrut(6));
+        titleBox.add(btnSegnalazioni);
 
         boolean isDark = FlatLaf.isLafDark();
         btnTema = new JButton(isDark ? "Chiaro" : "Scuro",
@@ -152,7 +161,7 @@ public class HomeWindow extends JFrame {
         p3Actions.add(carica);
 
         mainPanel.add(headerPanel);
-        mainPanel.add(Box.createVerticalStrut(25));
+        mainPanel.add(Box.createVerticalStrut(20));
         mainPanel.add(l1);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(cardConsultazione);
@@ -160,13 +169,10 @@ public class HomeWindow extends JFrame {
         mainPanel.add(l2);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(cardPlesso);
-        mainPanel.add(Box.createVerticalStrut(25));
+        mainPanel.add(Box.createVerticalStrut(20));
         mainPanel.add(Box.createVerticalGlue());
         mainPanel.add(p3Actions);
 
-        // ====================================================
-        // LISTENER – visibilità plesso
-        // ====================================================
         classi.addActionListener(e -> {
             l2.setVisible(true);
             cardPlesso.setVisible(true);
@@ -181,10 +187,6 @@ public class HomeWindow extends JFrame {
             repaint();
         });
 
-        // ====================================================
-        // LISTENER – CERCA ORARIO
-        // Verifica che il backend sia inizializzato, poi apre la finestra giusta
-        // ====================================================
         cerca.addActionListener(e -> {
             OrarioManager mgr = OrarioManager.getInstance();
             if (!mgr.isInizializzato()) {
@@ -209,10 +211,6 @@ public class HomeWindow extends JFrame {
             }
         });
 
-        // ====================================================
-        // LISTENER – CARICA CSV
-        // Chiede il file, rigeneera l'orario tramite OrarioManager e aggiorna la label
-        // ====================================================
         carica.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setCurrentDirectory(new File("."));
@@ -225,7 +223,6 @@ public class HomeWindow extends JFrame {
             carica.setEnabled(false);
             cerca.setEnabled(false);
 
-            // Generazione in un thread separato per non bloccare la GUI
             new Thread(() -> {
                 try {
                     OrarioManager.getInstance().caricaNuovoCsv(path);
@@ -235,13 +232,16 @@ public class HomeWindow extends JFrame {
                         carica.setEnabled(true);
                         cerca.setEnabled(true);
                         OrarioManager mgr = OrarioManager.getInstance();
+                        int nSegn = mgr.getReportErroriEVincoli().size();
                         JOptionPane.showMessageDialog(this,
                                 "File CSV caricato con successo!\n"
-                                + "Orario d'istituto generato.\n\n"
-                                + "• Lezioni: " + mgr.getNumeroLezioni() + "\n"
-                                + "• Classi:  " + mgr.getNumeroClassi() + "\n"
-                                + "• Docenti: " + mgr.getNumeroDocenti(),
-                                "Caricamento completato", JOptionPane.INFORMATION_MESSAGE);
+                                        + "Orario d'istituto generato.\n\n"
+                                        + "• Lezioni: " + mgr.getNumeroLezioni() + "\n"
+                                        + "• Classi:  " + mgr.getNumeroClassi() + "\n"
+                                        + "• Docenti: " + mgr.getNumeroDocenti() + "\n"
+                                        + "• Segnalazioni (errori/vincoli): " + nSegn,
+                                "Caricamento completato",
+                                nSegn > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
                     });
                 } catch (Exception ex) {
                     SwingUtilities.invokeLater(() -> {
@@ -256,27 +256,71 @@ public class HomeWindow extends JFrame {
             }).start();
         });
 
+        // Se il thread di inizializzazione in Main termina dopo l'apertura della GUI, aggiorna lo stato
+        new Timer(500, e -> {
+            if (OrarioManager.getInstance().isInizializzato()) {
+                aggiornaStats();
+                ((Timer) e.getSource()).stop();
+            }
+        }).start();
+
         applyThemeStyles();
 
-        setSize(700, 420);
+        setSize(720, 460);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
 
-    // ====================================================
-    // Aggiorna la label statistiche dal backend
-    // ====================================================
     private void aggiornaStats() {
         OrarioManager mgr = OrarioManager.getInstance();
         if (mgr.isInizializzato()) {
             lblStats.setText(" ✔︎ Dataset caricato: " + mgr.getNumeroLezioni() + " lezioni • "
                     + mgr.getNumeroClassi() + " classi • " + mgr.getNumeroDocenti() + " docenti");
             lblStats.setForeground(new Color(40, 167, 69));
+
+            List<String> segnalazioni = mgr.getReportErroriEVincoli();
+            btnSegnalazioni.setVisible(true);
+            if (segnalazioni.isEmpty()) {
+                btnSegnalazioni.setText("✔ Nessun errore o vincolo violato");
+                btnSegnalazioni.putClientProperty("FlatLaf.style",
+                        "background: #198754; foreground: #ffffff; arc: 999; margin: 4,12,4,12; borderWidth: 0");
+            } else {
+                btnSegnalazioni.setText("⚠ " + segnalazioni.size() + " errori / vincoli non rispettati (Dettagli)");
+                btnSegnalazioni.putClientProperty("FlatLaf.style",
+                        "background: #dc3545; foreground: #ffffff; arc: 999; margin: 4,12,4,12; borderWidth: 0");
+            }
         } else {
             lblStats.setText("⚠ Nessun dataset caricato – usa \"CARICA CSV\"");
             lblStats.setForeground(new Color(220, 53, 69));
+            btnSegnalazioni.setVisible(false);
         }
+    }
+
+    private void mostraReportSegnalazioni() {
+        List<String> segnalazioni = OrarioManager.getInstance().getReportErroriEVincoli();
+        if (segnalazioni.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Tutti gli orari sono stati generati senza errori e tutti i vincoli dei docenti sono rispettati.",
+                    "Verifica Orari", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < segnalazioni.size(); i++) {
+            sb.append(i + 1).append(". ").append(segnalazioni.get(i)).append("\n\n");
+        }
+
+        JTextArea area = new JTextArea(sb.toString(), 18, 65);
+        area.setEditable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+        JScrollPane scroll = new JScrollPane(area);
+        JOptionPane.showMessageDialog(this, scroll,
+                "Segnalazione Errori e Vincoli Non Rispettati (" + segnalazioni.size() + ")",
+                JOptionPane.WARNING_MESSAGE);
     }
 
     private JPanel createCardContainer(JComponent content) {
@@ -308,7 +352,6 @@ public class HomeWindow extends JFrame {
         return icon;
     }
 
-    // Applica lo stile al singolo toggle in base allo stato (selezionato o no) e al tema.
     private void updateToggleStyle(JToggleButton btn) {
         if (btn == null) return;
         boolean isDark = FlatLaf.isLafDark();

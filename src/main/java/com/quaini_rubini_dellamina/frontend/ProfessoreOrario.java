@@ -5,26 +5,27 @@ import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.quaini_rubini_dellamina.backend.OrarioManager;
+import com.quaini_rubini_dellamina.backend.algoritmo.GenOrarioVincoli;
 import com.quaini_rubini_dellamina.backend.entità.*;
-import com.quaini_rubini_dellamina.backend.io.BuildCsv;
-import com.quaini_rubini_dellamina.backend.io.TabellaOrsonPDF;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.File;
+import java.util.Collections;
 import java.util.List;
 
 public class ProfessoreOrario extends JFrame {
 
     private final JLabel lblInfoBottom;
+    private final JButton btnVincoliProf;
     private final JButton btnTema;
     private final JComboBox<String> comboProf;
     private final DefaultTableModel tableModel;
     private List<Slot> slotsCorrente = null;
+    private List<String> segnalazioniProfCorrente = Collections.emptyList();
+    private Preferenza prefCorrente = null;
 
     public ProfessoreOrario() {
         super("Orario Professori - Istituto Saraceno Romegialli");
@@ -63,9 +64,6 @@ public class ProfessoreOrario extends JFrame {
         JLabel labelProf = new JLabel("Professore:");
         labelProf.setFont(fontLabel);
 
-        // ====================================================
-        // Caricamento docenti tramite OrarioManager (backend)
-        // ====================================================
         String[] professori = caricaDocenti();
         comboProf = new JComboBox<>(professori);
         comboProf.setPreferredSize(new Dimension(220, 32));
@@ -111,7 +109,7 @@ public class ProfessoreOrario extends JFrame {
         };
 
         JTable table = new JTable(tableModel);
-        table.setRowHeight(55);
+        table.setRowHeight(58);
         table.setFont(new Font("SansSerif", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setReorderingAllowed(false);
@@ -124,7 +122,6 @@ public class ProfessoreOrario extends JFrame {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 setHorizontalAlignment(JLabel.CENTER);
 
-                // Se la cella fa parte della prima colonna ("ORE"), mantiene lo stile standard
                 if (column == 0) {
                     c.setBackground(table.getTableHeader().getBackground());
                     c.setForeground(table.getTableHeader().getForeground());
@@ -134,15 +131,18 @@ public class ProfessoreOrario extends JFrame {
 
                 setFont(getFont().deriveFont(Font.PLAIN));
 
-                // Se la cella contiene del testo (docente occupato in quell'ora)
                 if (value != null && !value.toString().trim().isEmpty()) {
                     boolean isDark = FlatLaf.isLafDark();
+                    boolean cellaViolaVincolo = isCellaViolata(row, column - 1);
 
-                    // Colore celle occupate (adattato al tema FlatLaf attivo)
-                    c.setBackground(isDark ? new Color(0, 70, 140) : new Color(215, 235, 255));
-                    c.setForeground(isDark ? Color.WHITE : new Color(10, 40, 80));
+                    if (cellaViolaVincolo) {
+                        c.setBackground(isDark ? new Color(150, 35, 45) : new Color(255, 205, 210));
+                        c.setForeground(isDark ? Color.WHITE : new Color(120, 10, 20));
+                    } else {
+                        c.setBackground(isDark ? new Color(0, 70, 140) : new Color(215, 235, 255));
+                        c.setForeground(isDark ? Color.WHITE : new Color(10, 40, 80));
+                    }
                 } else {
-                    // Cella vuota: ripristina i colori di default della tabella
                     c.setBackground(table.getBackground());
                     c.setForeground(table.getForeground());
                 }
@@ -154,7 +154,7 @@ public class ProfessoreOrario extends JFrame {
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // ====================================================
-        // ZONA SUD: BOTTONI ESPORTAZIONE + LABEL INFO
+        // ZONA SUD: BOTTONI ESPORTAZIONE + LABEL INFO + VINCOLI
         // ====================================================
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
@@ -168,9 +168,25 @@ public class ProfessoreOrario extends JFrame {
         lblInfoBottom = new JLabel("Seleziona un professore per caricare l'orario");
         lblInfoBottom.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
+        btnVincoliProf = new JButton("⚠ Vincoli");
+        btnVincoliProf.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btnVincoliProf.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnVincoliProf.putClientProperty("FlatLaf.style",
+                "background: #dc3545; foreground: #ffffff; arc: 10; margin: 6,12,6,12; borderWidth: 0");
+        btnVincoliProf.setVisible(false);
+        btnVincoliProf.addActionListener(e -> {
+            if (!segnalazioniProfCorrente.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        String.join("\n• ", segnalazioniProfCorrente),
+                        "Vincoli / Segnalazioni Docente",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
         leftBottomPanel.add(btnIndietro);
-        leftBottomPanel.add(Box.createHorizontalStrut(10));
+        leftBottomPanel.add(Box.createHorizontalStrut(8));
         leftBottomPanel.add(lblInfoBottom);
+        leftBottomPanel.add(btnVincoliProf);
 
         JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         JButton btnPdf = new JButton("SALVA PDF", createWhiteIcon("icons/pdfSave.svg", 16, 16));
@@ -191,9 +207,6 @@ public class ProfessoreOrario extends JFrame {
         bottomPanel.add(rightButtonsPanel, BorderLayout.EAST);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // ====================================================
-        // LISTENER – Torna indietro
-        // ====================================================
         btnIndietro.addActionListener(e -> {
             SwingUtilities.invokeLater(HomeWindow::new);
             dispose();
@@ -201,39 +214,60 @@ public class ProfessoreOrario extends JFrame {
 
         // ====================================================
         // LISTENER – VISUALIZZA ORARIO
-        // Recupera gli slot dal backend tramite OrarioManager e riempie la tabella
         // ====================================================
         btnVisualizza.addActionListener(e -> {
             if (comboProf.getSelectedItem() == null) return;
             String nomeProf = comboProf.getSelectedItem().toString();
 
-            slotsCorrente = OrarioManager.getInstance().getOrarioDocente(nomeProf);
+            OrarioManager mgr = OrarioManager.getInstance();
+            slotsCorrente = mgr.getOrarioDocente(nomeProf);
+            prefCorrente = mgr.getPreferenzaDocente(nomeProf);
 
-            // Svuota la tabella
+            GenOrarioVincoli.RisultatoVerificaDocente analisi = mgr.getAnalisiDocente(nomeProf);
+            segnalazioniProfCorrente = (analisi != null)
+                    ? analisi.getElencoSegnalazioni()
+                    : Collections.emptyList();
+
             for (int row = 0; row < tableModel.getRowCount(); row++)
                 for (int col = 1; col < tableModel.getColumnCount(); col++)
                     tableModel.setValueAt("", row, col);
 
-            // Riempie la tabella con i dati degli slot
             for (Slot slot : slotsCorrente) {
                 if (slot == null || !slot.isAssegnato() || slot.isVuoto() || slot.getLezione() == null)
                     continue;
                 int ora    = slot.indexOra();
                 int giorno = slot.indexGiorno();
-                String chiaveClasse = slot.getLezione().getClasse() != null
-                        ? slot.getLezione().getClasse().getChiave() : "";
-                tableModel.setValueAt(chiaveClasse, ora, giorno + 1);
+                Lezione l = slot.getLezione();
+                String chiaveClasse = l.getClasse() != null ? l.getClasse().getChiave() : "";
+
+                String testoCella = chiaveClasse;
+                if (l.hasCompresenza()) {
+                    String collega = l.getDocente().getNome().equalsIgnoreCase(nomeProf)
+                            ? l.getDocenteCompresenza().getNome()
+                            : l.getDocente().getNome();
+                    testoCella = "<html><center>" + chiaveClasse
+                            + "<br><small>(comp. " + collega + ")</small></center></html>";
+                }
+                tableModel.setValueAt(testoCella, ora, giorno + 1);
             }
 
             int totOre = (int) slotsCorrente.stream()
                     .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null)
                     .count();
-            lblInfoBottom.setText("Professore: " + nomeProf + " • " + totOre + " ore settimanali");
+
+            if (segnalazioniProfCorrente.isEmpty()) {
+                lblInfoBottom.setText("Professore: " + nomeProf + " • " + totOre + " ore settimanali");
+                lblInfoBottom.setForeground(UIManager.getColor("Label.foreground"));
+                btnVincoliProf.setVisible(false);
+            } else {
+                lblInfoBottom.setText("Professore: " + nomeProf + " • " + totOre + " ore");
+                btnVincoliProf.setText("⚠ Vincoli (" + segnalazioniProfCorrente.size() + ")");
+                btnVincoliProf.setVisible(true);
+            }
+
+            table.repaint();
         });
 
-        // ====================================================
-        // LISTENER – SALVA PDF
-        // ====================================================
         btnPdf.addActionListener(e -> {
             if (slotsCorrente == null || slotsCorrente.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
@@ -253,9 +287,6 @@ public class ProfessoreOrario extends JFrame {
             }
         });
 
-        // ====================================================
-        // LISTENER – SALVA CSV
-        // ====================================================
         btnCsv.addActionListener(e -> {
             if (slotsCorrente == null || slotsCorrente.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Visualizza prima un orario.", "Nessun orario", JOptionPane.WARNING_MESSAGE);
@@ -275,15 +306,21 @@ public class ProfessoreOrario extends JFrame {
             }
         });
 
-        setSize(950, 650);
+        setSize(980, 660);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
 
-    // ====================================================
-    // Carica la lista dei docenti dal backend (OrarioManager)
-    // ====================================================
+    private boolean isCellaViolata(int ora, int giorno) {
+        if (prefCorrente == null) return false;
+        int gLibero = GenOrarioVincoli.indiceGiorno(prefCorrente.giornoLibero());
+        if (gLibero >= 0 && gLibero == giorno) return true;
+        if (prefCorrente.noPrimaH() && ora == 0) return true;
+        if (prefCorrente.noUltimaH() && ora == (Slot.ORE_GIORNO - 1)) return true;
+        return false;
+    }
+
     private String[] caricaDocenti() {
         try {
             return OrarioManager.getInstance().getDocenti().stream()

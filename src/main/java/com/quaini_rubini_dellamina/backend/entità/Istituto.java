@@ -57,16 +57,19 @@ public class Istituto {
             ArrayList<Slot> risultato = new ArrayList<>();
 
             for (ArrayList<Slot> provvisorioHClasse : classi_tabelleh.values()) {
-                // Protezione se la lista di slot della classe è null
                 if (provvisorioHClasse == null) continue;
 
                 for (Slot s : provvisorioHClasse) {
-                    //  verifica che lo slot sia assegnato e la lezione/docente non siano null
-                    if (s != null && s.isAssegnato() && s.getLezione() != null &&
-                            s.getLezione().getDocente() != null &&
-                            s.getLezione().getDocente().getNome() != null) {
+                    if (s != null && s.isAssegnato() && s.getLezione() != null) {
+                        Lezione l = s.getLezione();
+                        boolean matchPrincipale = l.getDocente() != null
+                                && l.getDocente().getNome() != null
+                                && l.getDocente().getNome().equals(chiaveDocente);
+                        boolean matchCompresenza = l.getDocenteCompresenza() != null
+                                && l.getDocenteCompresenza().getNome() != null
+                                && l.getDocenteCompresenza().getNome().equals(chiaveDocente);
 
-                        if (s.getLezione().getDocente().getNome().equals(chiaveDocente)) {
+                        if (matchPrincipale || matchCompresenza) {
                             risultato.add(s);
                         }
                     }
