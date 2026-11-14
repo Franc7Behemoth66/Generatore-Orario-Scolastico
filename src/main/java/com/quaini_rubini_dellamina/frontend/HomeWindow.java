@@ -38,9 +38,6 @@ public class HomeWindow extends JFrame {
         mainPanel.setBorder(new EmptyBorder(25, 30, 25, 30));
         setContentPane(mainPanel);
 
-        // ====================================================
-        // HEADER MODERNO
-        // ====================================================
         JPanel headerPanel = new JPanel(new BorderLayout(15, 0));
         headerPanel.setOpaque(false);
         headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
@@ -90,9 +87,7 @@ public class HomeWindow extends JFrame {
         headerPanel.add(titleBox, BorderLayout.WEST);
         headerPanel.add(rightHeader, BorderLayout.EAST);
 
-        // ====================================================
-        // SEZIONE 1: CONSULTAZIONE
-        // ====================================================
+        // SEZIONE
         Font titleFont = new Font("SansSerif", Font.BOLD, 13);
 
         JLabel l1 = new JLabel("CHE ORARIO DESIDERI CONSULTARE?");
@@ -114,9 +109,6 @@ public class HomeWindow extends JFrame {
 
         cardConsultazione = createCardContainer(p1Buttons);
 
-        // ====================================================
-        // SEZIONE 2: SELEZIONE PLESSO
-        // ====================================================
         l2 = new JLabel("SELEZIONA IL PLESSO");
         l2.setFont(titleFont);
         l2.setForeground(new Color(170, 170, 170));
@@ -138,9 +130,7 @@ public class HomeWindow extends JFrame {
         cardPlesso = createCardContainer(p2Buttons);
         cardPlesso.setVisible(false);
 
-        // ====================================================
-        // BOTTONI AZIONE BOTTOM
-        // ====================================================
+        // ACTION BUTTON INFERIORI
         JButton cerca = new JButton("CERCA ORARIO", createWhiteIcon("icons/lens.svg", 18, 18));
         cerca.setFont(new Font("SansSerif", Font.BOLD, 14));
         cerca.setIconTextGap(10);
@@ -173,6 +163,7 @@ public class HomeWindow extends JFrame {
         mainPanel.add(Box.createVerticalGlue());
         mainPanel.add(p3Actions);
 
+        // GESTIONE EVENTI E CARICAMENTO CSV
         classi.addActionListener(e -> {
             l2.setVisible(true);
             cardPlesso.setVisible(true);
@@ -256,7 +247,6 @@ public class HomeWindow extends JFrame {
             }).start();
         });
 
-        // Se il thread di inizializzazione in Main termina dopo l'apertura della GUI, aggiorna lo stato
         new Timer(500, e -> {
             if (OrarioManager.getInstance().isInizializzato()) {
                 aggiornaStats();
@@ -272,6 +262,7 @@ public class HomeWindow extends JFrame {
         setVisible(true);
     }
 
+    // AGGIORNAMENTO STATISTICHE E SEGNALAZIONI
     private void aggiornaStats() {
         OrarioManager mgr = OrarioManager.getInstance();
         if (mgr.isInizializzato()) {
@@ -323,6 +314,7 @@ public class HomeWindow extends JFrame {
                 JOptionPane.WARNING_MESSAGE);
     }
 
+    // METODI DI SUPPORTO UI E TEMA
     private JPanel createCardContainer(JComponent content) {
         JPanel card = new JPanel(new GridBagLayout());
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));

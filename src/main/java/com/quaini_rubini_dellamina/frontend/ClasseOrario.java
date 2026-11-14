@@ -43,9 +43,7 @@ public class ClasseOrario extends JFrame {
         Font fontLabel  = new Font("SansSerif", Font.BOLD, 14);
         Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
-        // ====================================================
-        // ZONA NORD: HEADER + FILTRI
-        // ====================================================
+        // ZONA NORD: HEADER E FILTRI
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
@@ -104,9 +102,7 @@ public class ClasseOrario extends JFrame {
         topPanel.add(formPanel);
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-        // ====================================================
         // ZONA CENTRO: TABELLA ORARIO
-        // ====================================================
         Giorni[] giorniValues = Giorni.values();
         String[] columnNames = new String[giorniValues.length + 1];
         columnNames[0] = "ORE";
@@ -194,9 +190,7 @@ public class ClasseOrario extends JFrame {
 
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // ====================================================
-        // ZONA SUD: BOTTONI + INFO + SEGNALAZIONI
-        // ====================================================
+        // ZONA SUD: BOTTONI ESPORTAZIONE E INFO
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
         JPanel leftBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -251,9 +245,7 @@ public class ClasseOrario extends JFrame {
         bottomPanel.add(rightButtonsPanel, BorderLayout.EAST);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // ====================================================
-        // LISTENER – VISUALIZZA ORARIO
-        // ====================================================
+        // GESTIONE EVENTI E SALVATAGGIO
         btnVisualizza.addActionListener(e -> {
             String chiaveClasse = (String) comboChiaveClasse.getSelectedItem();
             if (chiaveClasse == null) {

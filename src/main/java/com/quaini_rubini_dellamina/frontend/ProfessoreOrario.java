@@ -7,6 +7,7 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.quaini_rubini_dellamina.backend.OrarioManager;
 import com.quaini_rubini_dellamina.backend.algoritmo.GenOrarioVincoli;
 import com.quaini_rubini_dellamina.backend.entità.*;
+import com.quaini_rubini_dellamina.backend.io.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -39,9 +40,7 @@ public class ProfessoreOrario extends JFrame {
         Font fontLabel  = new Font("SansSerif", Font.BOLD, 14);
         Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
-        // ====================================================
-        // ZONA NORD: HEADER + FILTRO PROFESSORE
-        // ====================================================
+        // ZONA NORD: HEADER E FILTRO PROFESSORE
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
@@ -75,10 +74,22 @@ public class ProfessoreOrario extends JFrame {
         btnVisualizza.putClientProperty("FlatLaf.style",
                 "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
 
+        JButton btnPreferenze = new JButton("PREFERENZE",
+                createAdaptiveIcon("icons/user.svg", 16, 16));
+        btnPreferenze.setFont(fontButton);
+        btnPreferenze.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnPreferenze.putClientProperty("FlatLaf.style",
+                "arc: 10; margin: 6,15,6,15; borderWidth: 1; focusWidth: 0");
+        btnPreferenze.addActionListener(e -> {
+            SwingUtilities.invokeLater(SelezionaPreferenze::new);
+            dispose();
+        });
+
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         filterPanel.add(labelProf);
         filterPanel.add(comboProf);
         filterPanel.add(btnVisualizza);
+        filterPanel.add(btnPreferenze);
 
         JPanel formPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         formPanel.add(filterPanel);
@@ -88,9 +99,7 @@ public class ProfessoreOrario extends JFrame {
         topPanel.add(formPanel);
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-        // ====================================================
         // ZONA CENTRO: TABELLA ORARIO
-        // ====================================================
         Giorni[] giorniValues = Giorni.values();
         String[] columnNames = new String[giorniValues.length + 1];
         columnNames[0] = "ORE";
@@ -153,9 +162,7 @@ public class ProfessoreOrario extends JFrame {
 
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // ====================================================
-        // ZONA SUD: BOTTONI ESPORTAZIONE + LABEL INFO + VINCOLI
-        // ====================================================
+        // ZONA SUD: BOTTONI ESPORTAZIONE E INFO
         JPanel bottomPanel = new JPanel(new BorderLayout());
 
         JPanel leftBottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -212,9 +219,7 @@ public class ProfessoreOrario extends JFrame {
             dispose();
         });
 
-        // ====================================================
-        // LISTENER – VISUALIZZA ORARIO
-        // ====================================================
+        // GESTIONE EVENTI E SALVATAGGIO
         btnVisualizza.addActionListener(e -> {
             if (comboProf.getSelectedItem() == null) return;
             String nomeProf = comboProf.getSelectedItem().toString();
@@ -312,6 +317,7 @@ public class ProfessoreOrario extends JFrame {
         setVisible(true);
     }
 
+    // METODI DI SUPPORTO E TEMA
     private boolean isCellaViolata(int ora, int giorno) {
         if (prefCorrente == null) return false;
         int gLibero = GenOrarioVincoli.indiceGiorno(prefCorrente.giornoLibero());
