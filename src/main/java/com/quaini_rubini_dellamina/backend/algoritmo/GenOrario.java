@@ -161,18 +161,24 @@ public class GenOrario {
         return s.getLezione().getMateria().getNome().trim().toUpperCase();
     }
 
-    // Sincronizza le coppie di classi TUR dello stesso anno con lingue separate (es. 4A Francese / 4B Tedesco)
+    // Indirizzi in cui TEDESCO e FRANCESE si fanno insieme (sdoppiamento)
+    private static boolean haSdoppiamentoLingue(String indirizzo) {
+        return "TUR".equalsIgnoreCase(indirizzo) || "AFM".equalsIgnoreCase(indirizzo);
+    }
+
+    // Sincronizza le coppie di classi dello stesso indirizzo e anno con lingue separate (es. 4A-TUR Francese / 4B-TUR Tedesco)
     private void sincronizzaLingueTur(Set<Classe> classi, List<Lezione> lessons) {
         slotPreassegnati.clear();
         if (classi == null || lessons == null) return;
 
-        Map<Integer, List<Classe>> turPerAnno = new TreeMap<>();
+        // Chiave "indirizzo + anno": TUR e AFM non vanno mai mescolati
+        Map<String, List<Classe>> perIndirizzoAnno = new TreeMap<>();
         for (Classe c : classi)
-            if ("TUR".equalsIgnoreCase(c.getIndirizzo()))
-                turPerAnno.computeIfAbsent(c.getAnno(), k -> new ArrayList<>()).add(c);
+            if (haSdoppiamentoLingue(c.getIndirizzo()))
+                perIndirizzoAnno.computeIfAbsent(c.getIndirizzo().toUpperCase() + c.getAnno(), k -> new ArrayList<>()).add(c);
 
         Random rnd = new Random();
-        for (List<Classe> gruppo : turPerAnno.values()) {
+        for (List<Classe> gruppo : perIndirizzoAnno.values()) {
             if (gruppo.size() < 2) continue;
             gruppo.sort(Comparator.comparing(Classe::getChiave));
             Classe cA = gruppo.get(0);
@@ -225,7 +231,7 @@ public class GenOrario {
     /*
      Espande le lezioni della classe in singoli slot.
      Più docenti sulla stessa materia vengono accoppiati in compresenza.
-     Nelle classi TUR, TEDESCO e FRANCESE vengono accoppiati negli stessi slot (sdoppiamento).
+     Nelle classi TUR e AFM, TEDESCO e FRANCESE vengono accoppiati negli stessi slot (sdoppiamento).
      */
     public List<Slot> espandiInSlot(List<Lezione> lezioni) {
         Map<String, List<Lezione>> perMateria = new LinkedHashMap<>();
@@ -234,10 +240,10 @@ public class GenOrario {
 
         List<Slot> slots = new ArrayList<>();
 
-        boolean isTur = !lezioni.isEmpty()
+        boolean sdoppia = !lezioni.isEmpty()
                 && lezioni.getFirst().getClasse() != null
-                && "TUR".equalsIgnoreCase(lezioni.getFirst().getClasse().getIndirizzo());
-        if (isTur && perMateria.containsKey("TEDESCO") && perMateria.containsKey("FRANCESE")) {
+                && haSdoppiamentoLingue(lezioni.getFirst().getClasse().getIndirizzo());
+        if (sdoppia && perMateria.containsKey("TEDESCO") && perMateria.containsKey("FRANCESE")) {
             slots.addAll(sdoppiaLingueTur(perMateria.remove("TEDESCO"), perMateria.remove("FRANCESE")));
         }
 
