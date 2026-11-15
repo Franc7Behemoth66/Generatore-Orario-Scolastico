@@ -14,8 +14,12 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class HomeWindow extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(HomeWindow.class.getName());
 
     private final JButton btnTema;
     private final JButton btnSegnalazioni;
@@ -181,8 +185,12 @@ public class HomeWindow extends JFrame {
         cerca.addActionListener(e -> {
             OrarioManager mgr = OrarioManager.getInstance();
             if (!mgr.isInizializzato()) {
+                String dettaglioErrore = (mgr.getErroreInizializzazione() != null)
+                        ? "\n\nDettaglio errore: " + mgr.getErroreInizializzazione()
+                        : "";
                 JOptionPane.showMessageDialog(this,
-                        "Nessun dataset caricato.\nUsa il pulsante \"CARICA CSV\" prima di cercare un orario.",
+                        "Nessun dataset valido caricato." + dettaglioErrore
+                                + "\n\nUsa il pulsante \"CARICA CSV\" prima di cercare un orario.",
                         "Dataset mancante", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -235,22 +243,33 @@ public class HomeWindow extends JFrame {
                                 nSegn > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
                     });
                 } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Errore caricamento CSV: " + path, ex);
                     SwingUtilities.invokeLater(() -> {
+                        aggiornaStats();
                         setCursor(Cursor.getDefaultCursor());
                         carica.setEnabled(true);
                         cerca.setEnabled(true);
                         JOptionPane.showMessageDialog(this,
-                                "Errore durante l'importazione:\n" + ex.getMessage(),
+                                "Errore durante l'importazione del CSV:\n" + ex.getMessage(),
                                 "Errore Caricamento", JOptionPane.ERROR_MESSAGE);
                     });
                 }
             }).start();
         });
 
-        new Timer(500, e -> {
-            if (OrarioManager.getInstance().isInizializzato()) {
+        new Timer(400, e -> {
+            OrarioManager mgr = OrarioManager.getInstance();
+            if (mgr.isInizializzato() || mgr.getErroreInizializzazione() != null) {
                 aggiornaStats();
                 ((Timer) e.getSource()).stop();
+                if (!mgr.isInizializzato() && mgr.getErroreInizializzazione() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            "Impossibile inizializzare il dataset predefinito:\n"
+                                    + mgr.getErroreInizializzazione()
+                                    + "\n\nPuoi caricare manualmente un file CSV valido usando il pulsante \"CARICA CSV\".",
+                            "Errore Inizializzazione Dataset",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         }).start();
 
@@ -281,16 +300,34 @@ public class HomeWindow extends JFrame {
                 btnSegnalazioni.putClientProperty("FlatLaf.style",
                         "background: #dc3545; foreground: #ffffff; arc: 999; margin: 4,12,4,12; borderWidth: 0");
             }
-        } else {
-            lblStats.setText("⚠ Nessun dataset caricato – usa \"CARICA CSV\"");
+        } else if (mgr.getErroreInizializzazione() != null) {
+            lblStats.setText("⚠ Errore inizializzazione: " + mgr.getErroreInizializzazione());
             lblStats.setForeground(new Color(220, 53, 69));
+            btnSegnalazioni.setText("⚠ Dettaglio Errore Inizializzazione");
+            btnSegnalazioni.putClientProperty("FlatLaf.style",
+                    "background: #dc3545; foreground: #ffffff; arc: 999; margin: 4,12,4,12; borderWidth: 0");
+            btnSegnalazioni.setVisible(true);
+        } else {
+            lblStats.setText("⚠ Caricamento dataset in corso...");
+            lblStats.setForeground(new Color(220, 150, 0));
             btnSegnalazioni.setVisible(false);
         }
     }
 
     private void mostraReportSegnalazioni() {
-        List<String> segnalazioni = OrarioManager.getInstance().getReportErroriEVincoli();
+        OrarioManager mgr = OrarioManager.getInstance();
+        List<String> segnalazioni = mgr.getReportErroriEVincoli();
         if (segnalazioni.isEmpty()) {
+            if (!mgr.isInizializzato()) {
+                String errMsg = mgr.getErroreInizializzazione() != null
+                        ? mgr.getErroreInizializzazione()
+                        : "Nessun dataset è stato ancora caricato.";
+                JOptionPane.showMessageDialog(this,
+                        "Il dataset non è caricato:\n" + errMsg
+                                + "\n\nSeleziona un file CSV valido con il pulsante \"CARICA CSV\".",
+                        "Stato Dataset", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             JOptionPane.showMessageDialog(this,
                     "Tutti gli orari sono stati generati senza errori e tutti i vincoli dei docenti sono rispettati.",
                     "Verifica Orari", JOptionPane.INFORMATION_MESSAGE);
@@ -310,7 +347,7 @@ public class HomeWindow extends JFrame {
 
         JScrollPane scroll = new JScrollPane(area);
         JOptionPane.showMessageDialog(this, scroll,
-                "Segnalazione Errori e Vincoli Non Rispettati (" + segnalazioni.size() + ")",
+                "Segnalazione Errori e Vincoli (" + segnalazioni.size() + ")",
                 JOptionPane.WARNING_MESSAGE);
     }
 
@@ -401,7 +438,7 @@ public class HomeWindow extends JFrame {
             applyThemeStyles();
             FlatLaf.updateUI();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.WARNING, "Errore durante il cambio del tema", ex);
         }
     }
 }

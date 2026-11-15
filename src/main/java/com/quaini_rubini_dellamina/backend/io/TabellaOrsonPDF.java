@@ -16,8 +16,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TabellaOrsonPDF {
+
+    private static final Logger LOGGER = Logger.getLogger(TabellaOrsonPDF.class.getName());
 
     private static final String DEFAULT_OUTPUT_PATH =
             "src/main/java/com/quaini_rubini_dellamina";
@@ -146,13 +150,11 @@ public class TabellaOrsonPDF {
         }
 
         pdfDoc.writeToFile(fileOutput);
-        System.out.println("Tabella PDF generata in: " + fileOutput.getAbsolutePath());
+        LOGGER.info("Tabella PDF generata in: " + fileOutput.getAbsolutePath());
         apriPDF(fileOutput);
     }
 
-    public static void creaPDF(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
-        creaPDF(slotAssegnati, DEFAULT_OUTPUT_PATH, isClasse);
-    }
+
 
     private static void apriPDF(File file) {
         if (!Desktop.isDesktopSupported()) return;
@@ -161,7 +163,7 @@ public class TabellaOrsonPDF {
         try {
             desktop.open(file);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Impossibile aprire automaticamente il file PDF: " + file.getAbsolutePath(), e);
         }
     }
 }

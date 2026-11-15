@@ -16,9 +16,13 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ProfessoreOrario extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(ProfessoreOrario.class.getName());
 
     private final JLabel lblInfoBottom;
     private final JButton btnVincoliProf;
@@ -76,11 +80,12 @@ public class ProfessoreOrario extends JFrame {
                 "background: #0d6efd; foreground: #ffffff; arc: 10; margin: 6,15,6,15; borderWidth: 0; focusWidth: 0");
 
         JButton btnPreferenze = new JButton("PREFERENZE",
-                createAdaptiveIcon("icons/user.svg", 16, 16));
-        btnPreferenze.setFont(fontButton);
+                createWhiteIcon("icons/user.svg", 16, 16));
+        btnPreferenze.setBackground(new Color(202, 76, 13));
+
         btnPreferenze.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnPreferenze.putClientProperty("FlatLaf.style",
-                "arc: 10; margin: 6,15,6,15; borderWidth: 1; focusWidth: 0");
+                "arc: 10; margin: 6,15,6,15;foreground: #ffffff; borderWidth: 1; focusWidth: 0");
         btnPreferenze.addActionListener(e -> {
             SwingUtilities.invokeLater(SelezionaPreferenze::new);
             dispose();
@@ -231,7 +236,13 @@ public class ProfessoreOrario extends JFrame {
 
         // GESTIONE EVENTI E SALVATAGGIO
         btnVisualizza.addActionListener(e -> {
-            if (comboProf.getSelectedItem() == null) return;
+            if (comboProf.getSelectedItem() == null || "Nessun docente disponibile".equals(comboProf.getSelectedItem().toString())) {
+                JOptionPane.showMessageDialog(this,
+                        "Nessun docente selezionato o disponibile nel dataset. Verifica che il file CSV sia stato caricato correttamente.",
+                        "Docente non disponibile",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             String nomeProf = comboProf.getSelectedItem().toString();
 
             OrarioManager mgr = OrarioManager.getInstance();
@@ -369,12 +380,19 @@ public class ProfessoreOrario extends JFrame {
 
     private String[] caricaDocenti() {
         try {
-            return OrarioManager.getInstance().getDocenti().stream()
+            List<Docente> docenti = OrarioManager.getInstance().getDocenti();
+            if (docenti.isEmpty()) {
+                return new String[]{"Nessun docente disponibile"};
+            }
+            return docenti.stream()
                     .map(Docente::getNome)
                     .sorted()
                     .toArray(String[]::new);
         } catch (Exception e) {
-            System.err.println("Errore nel caricamento docenti: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Errore nel caricamento docenti", e);
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                    "Errore durante il caricamento dell'elenco docenti:\n" + e.getMessage(),
+                    "Errore Docenti", JOptionPane.ERROR_MESSAGE));
             return new String[]{"Nessun docente disponibile"};
         }
     }
@@ -404,7 +422,7 @@ public class ProfessoreOrario extends JFrame {
             }
             FlatLaf.updateUI();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.WARNING, "Errore durante il cambio del tema", ex);
         }
     }
 }

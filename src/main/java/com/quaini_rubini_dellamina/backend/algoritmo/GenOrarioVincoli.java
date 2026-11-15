@@ -28,9 +28,6 @@ public class GenOrarioVincoli extends GenOrario {
         this(ReadVincoliJSON.leggi());
     }
 
-    public ConfiguraVincoli getVincoli() {
-        return vincoli;
-    }
 
     public Preferenza getPreferenzaDocente(String nomeDocente) {
         if (nomeDocente == null) return null;
@@ -77,38 +74,24 @@ public class GenOrarioVincoli extends GenOrario {
     }
 
     // Vincolo non obbligatorio: riduzione delle ore buche (considera tutti i docenti in compresenza)
-    @Override
+
+    //Ordina gli slot disponibili dal meno penalizzante al più penalizzante
     protected void ordinaSlotLiberi(List<int[]> liberi, List<Docente> docenti) {
-        if (liberi == null || liberi.size() <= 1 || docenti == null) return;
-        liberi.sort(Comparator.comparingInt(slot -> {
-            int penalita = 0;
-            for (Docente d : docenti) {
-                penalita += calcolaPenalitaSoft(d.getNome(), slot[0], slot[1]);
-            }
-            return penalita;
-        }));
+        liberi.sort(Comparator.comparingInt(slot ->
+                docenti.stream()
+                        .mapToInt(d -> calcolaPenalitaSoft(d.getNome(), slot[0], slot[1]))
+                        .sum()));
     }
 
     public int calcolaPenalitaSoft(String nomeDocente, int giorno, int ora) {
-        if (nomeDocente == null) return 0;
         Preferenza pref = getPreferenzaDocente(nomeDocente);
-        if (pref == null || !pref.riduciOreBuche()) {
-            return 0;
-        }
+        if (pref == null || !pref.riduciOreBuche()) return 0;
 
-        List<Integer> oreGiorno = getOreDocenteNelGiorno(nomeDocente, giorno);
-        if (oreGiorno.isEmpty()) {
-            return 0;
-        }
+        List<Integer> ore = getOreDocenteNelGiorno(nomeDocente, giorno);
+        int buchePrima = calcolaOreBucheGiorno(ore);
 
-        int buchePrima = calcolaOreBucheGiorno(oreGiorno);
-
-        List<Integer> oreIpotetiche = new ArrayList<>(oreGiorno);
-        oreIpotetiche.add(ora);
-        int bucheDopo = calcolaOreBucheGiorno(oreIpotetiche);
-
-        int deltaBuche = bucheDopo - buchePrima;
-        return (deltaBuche > 0) ? (deltaBuche * 20) : 0;
+        ore.add(ora);
+        return calcolaOreBucheGiorno(ore) - buchePrima;
     }
 
     public List<Integer> getOreDocenteNelGiorno(String nomeDocente, int giorno) {
@@ -145,10 +128,6 @@ public class GenOrarioVincoli extends GenOrario {
         return -1;
     }
 
-    public static Istituto generaConVincoli(ReadCsv r, List<Lezione> lezioni, String cartella) throws IOException, CsvValidationException {
-        ConfiguraVincoli vincoli = ReadVincoliJSON.leggi();
-        return new GenOrarioVincoli(vincoli).generaIstituto(r, lezioni, cartella);
-    }
 
     // Report e verifica delle preferenze e dei conflitti
     public static class RisultatoVerificaDocente {
@@ -182,8 +161,8 @@ public class GenOrarioVincoli extends GenOrario {
             List<String> list = new ArrayList<>();
             if (violazioneContemporaneita) list.add("[ERRORE] Contemporaneità: docente assegnato a più classi nella stessa ora.");
             if (violazioneGiornoLibero) list.add("[VINCOLO OBBLIGATORIO] Giorno libero non rispettato.");
-            if (violazioneNoPrimaH) list.add("[VINCOLO OBBLIGATORIO] Presente alla 1ª ora nonostante vincolo 'no-prima-h'.");
-            if (violazioneNoUltimaH) list.add("[VINCOLO OBBLIGATORIO] Presente all'ultima ora nonostante vincolo 'no-ultima-h'.");
+            if (violazioneNoPrimaH) list.add("[VINCOLO OBBLIGATORIO] Presente alla prima ora nonostante vincolo di esclusione dalla prima ora.");
+            if (violazioneNoUltimaH) list.add("[VINCOLO OBBLIGATORIO] Presente all'ultima ora nonostante  di esclusione dall'ultima ora.");
             if (violazioneLimiteH) list.add("[VINCOLO OBBLIGATORIO] Superato il limite massimo di ore giornaliere.");
             list.addAll(motivazioniNonSoddisfatte);
             return list;

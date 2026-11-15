@@ -15,9 +15,13 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ClasseOrario extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(ClasseOrario.class.getName());
 
     private final String plesso;
     private final JComboBox<String> comboIndirizzo;
@@ -252,6 +256,10 @@ public class ClasseOrario extends JFrame {
             if (chiaveClasse == null) {
                 lblInfoBottom.setText("Nessuna classe disponibile per i filtri selezionati.");
                 btnErroriClasse.setVisible(false);
+                JOptionPane.showMessageDialog(this,
+                        "Nessuna classe trovata per l'anno e l'indirizzo selezionati.",
+                        "Nessuna Classe",
+                        JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
@@ -433,7 +441,7 @@ public class ClasseOrario extends JFrame {
             }
             FlatLaf.updateUI();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.WARNING, "Errore durante il cambio del tema", ex);
         }
     }
 }

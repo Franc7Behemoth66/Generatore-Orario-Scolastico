@@ -7,8 +7,11 @@ import com.quaini_rubini_dellamina.backend.entità.*;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class ReadCsv {
+
+    private static final Logger LOGGER = Logger.getLogger(ReadCsv.class.getName());
 
     private static final String DEFAULT_PATH =
             "src/main/java/com/quaini_rubini_dellamina/source.csv";
@@ -41,7 +44,7 @@ public class ReadCsv {
                 }
                 if (riga.length < 6) {
                     String msg = "Riga " + numeroRiga + " ignorata (colonne insufficienti): " + String.join(",", riga);
-                    System.err.println(msg);
+                    LOGGER.warning(msg);
                     erroriCsv.add(msg);
                     continue;
                 }
@@ -57,7 +60,7 @@ public class ReadCsv {
                     if (nomeDocente.isEmpty() || annoStr.isEmpty() || sezioneStr.isEmpty()
                             || indirizzo.isEmpty() || nomeMateria.isEmpty() || oreStr.isEmpty()) {
                         String msg = "Riga " + numeroRiga + " ignorata (dati mancanti): " + String.join(",", riga);
-                        System.err.println(msg);
+                        LOGGER.warning(msg);
                         erroriCsv.add(msg);
                         continue;
                     }
@@ -68,7 +71,7 @@ public class ReadCsv {
 
                     if (anno <= 0 || ore <= 0) {
                         String msg = "Riga " + numeroRiga + " ignorata (anno o ore non validi/negativi): " + String.join(",", riga);
-                        System.err.println(msg);
+                        LOGGER.warning(msg);
                         erroriCsv.add(msg);
                         continue;
                     }
@@ -82,7 +85,7 @@ public class ReadCsv {
                 } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
                     String msg = "Riga " + numeroRiga + " ignorata (formato non valido): "
                             + String.join(",", riga) + " → " + e.getMessage();
-                    System.err.println(msg);
+                    LOGGER.warning(msg);
                     erroriCsv.add(msg);
                 }
             }

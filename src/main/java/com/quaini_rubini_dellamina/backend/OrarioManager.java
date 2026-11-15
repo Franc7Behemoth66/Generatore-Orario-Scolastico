@@ -11,11 +11,15 @@ import com.quaini_rubini_dellamina.backend.io.TabellaOrsonPDF;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /*
   Classe ponte tra backend e frontend.
  */
 public class OrarioManager {
+
+    private static final Logger LOGGER = Logger.getLogger(OrarioManager.class.getName());
 
     private static final String DEFAULT_CSV_PATH =
             "src/main/java/com/quaini_rubini_dellamina/source.csv";
@@ -29,7 +33,7 @@ public class OrarioManager {
 
     private String currentCsvPath = DEFAULT_CSV_PATH;
     private ReadCsv reader;
-    private List<Lezione>  lezioni  = new ArrayList<>();
+    private List<Lezione> lezioni = new ArrayList<>();
     private ConfiguraVincoli vincoli;
     private GenOrarioVincoli generatore;
     private Istituto istituto;
@@ -37,14 +41,22 @@ public class OrarioManager {
     private Map<String, List<String>> erroriClassi = new LinkedHashMap<>();
     private List<String> erroriCsv = new ArrayList<>();
     private volatile boolean inizializzato = false;
+    private volatile String erroreInizializzazione = null;
+    private volatile String erroreVincoli = null;
 
     public synchronized void inizializza() {
         if (inizializzato) return;
         try {
             caricaDataset(DEFAULT_CSV_PATH);
         } catch (Exception e) {
-            System.err.println("[OrarioManager] Errore inizializzazione: " + e.getMessage());
+            erroreInizializzazione = messaggio(e);
+            LOGGER.log(Level.SEVERE, "[OrarioManager] Errore inizializzazione", e);
         }
+    }
+
+    // Ricarica il dataset corrente (usato dopo il salvataggio di una preferenza)
+    public synchronized void caricaDataset() throws IOException, CsvValidationException {
+        caricaDataset(currentCsvPath);
     }
 
     public synchronized void caricaDataset(String csvPath) throws IOException, CsvValidationException {
@@ -53,14 +65,16 @@ public class OrarioManager {
             throw new IOException("File CSV non trovato: " + fileCsv.getAbsolutePath());
 
         this.currentCsvPath = csvPath;
-        this.reader  = new ReadCsv(csvPath);
+        this.reader = new ReadCsv(csvPath);
         this.lezioni = reader.leggi();
         this.erroriCsv = new ArrayList<>(reader.getErroriCsv());
 
         try {
+            erroreVincoli = null;
             this.vincoli = ReadVincoliJSON.leggi();
         } catch (Exception e) {
-            System.err.println("[OrarioManager] Vincoli JSON non caricati: " + e.getMessage());
+            erroreVincoli = messaggio(e);
+            LOGGER.log(Level.WARNING, "[OrarioManager] Vincoli JSON non caricati", e);
             this.vincoli = new ConfiguraVincoli("Saraceno-Romegialli", Collections.emptyList());
         }
 
@@ -73,19 +87,34 @@ public class OrarioManager {
         if (vincoli != null && istituto != null)
             this.analisiDocenti = GenOrarioVincoli.analizzaOrario(vincoli, istituto);
 
+        erroreInizializzazione = null;
         this.inizializzato = true;
-        System.out.println("[OrarioManager] Caricato: "
-                + lezioni.size() + " lezioni, "
-                + istituto.getClassiUni().size() + " classi, "
-                + istituto.getDocentiUni().size() + " docenti.");
+        LOGGER.info(String.format("[OrarioManager] Caricato: %d lezioni, %d classi, %d docenti.",
+                lezioni.size(), istituto.getClassiUni().size(), istituto.getDocentiUni().size()));
     }
 
     public synchronized void caricaNuovoCsv(String path) throws IOException, CsvValidationException {
         inizializzato = false;
-        caricaDataset(path);
+        try {
+            caricaDataset(path);
+        } catch (IOException | CsvValidationException e) {
+            erroreInizializzazione = messaggio(e);
+            throw e;
+        } catch (Exception e) {
+            erroreInizializzazione = messaggio(e);
+            throw new IOException("Errore durante l'elaborazione del dataset: " + e.getMessage(), e);
+        }
+    }
+
+    private static String messaggio(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.toString();
     }
 
     public boolean isInizializzato() { return inizializzato; }
+
+    public String getErroreInizializzazione() { return erroreInizializzazione; }
+
+    public String getErroreVincoli() { return erroreVincoli; }
 
     public synchronized int getNumeroLezioni() {
         return lezioni != null ? lezioni.size() : 0;
@@ -143,6 +172,12 @@ public class OrarioManager {
 
     public synchronized List<String> getReportErroriEVincoli() {
         List<String> report = new ArrayList<>();
+
+        if (erroreInizializzazione != null && !inizializzato)
+            report.add("[ERRORE INIZIALIZZAZIONE] " + erroreInizializzazione);
+
+        if (erroreVincoli != null)
+            report.add("[ERRORE FILE VINCOLI JSON] Impossibile caricare i vincoli: " + erroreVincoli);
 
         if (erroriCsv != null) {
             for (String errCsv : erroriCsv) {

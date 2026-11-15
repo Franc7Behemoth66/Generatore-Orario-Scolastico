@@ -47,11 +47,14 @@ package "Legenda" <<Rectangle>> {
     class ParteAggr
     class Client
     class Server
+    class Frigo
+    class RecordPartiF
 
     Padre <|-- Figlio : ereditarietà
     Intero *-- ParteComp : composizione
     Contenitore o-- ParteAggr : aggregazione
     Client ..> Server : dipendenza
+    Frigo +-- RecordPartiF : classe annidata
 }
 
 ' Interfaccia grafica
@@ -118,6 +121,7 @@ package "frontend" #DAE8FC {
     }
 
     class SelezionaPreferenze {
+        {static} - LOGGER: Logger
         - btnTema: JButton
         - cardForm: JPanel
         - comboDocente: JComboBox<String>
@@ -139,6 +143,7 @@ package "frontend" #DAE8FC {
 ' Gestore principale
 package "backend" #E1D5E7 {
     class OrarioManager {
+        {static} - LOGGER: Logger
         {static} - DEFAULT_CSV_PATH: String
         {static} - DEFAULT_OUTPUT_DIR: String
         {static} - INSTANCE: OrarioManager
@@ -152,12 +157,18 @@ package "backend" #E1D5E7 {
         - erroriClassi: Map<String, List<String>>
         - erroriCsv: List<String>
         - inizializzato: boolean
+        - erroreInizializzazione: String
+        - erroreVincoli: String
         - OrarioManager()
         {static} + getInstance(): OrarioManager
         + inizializza(): void
+        + caricaDataset(): void
         + caricaDataset(csvPath: String): void
         + caricaNuovoCsv(path: String): void
+        {static} - messaggio(e: Exception): String
         + isInizializzato(): boolean
+        + getErroreInizializzazione(): String
+        + getErroreVincoli(): String
         + getNumeroLezioni(): int
         + getNumeroClassi(): int
         + getNumeroDocenti(): int
@@ -184,6 +195,7 @@ package "backend" #E1D5E7 {
 package "backend.algoritmo" #AAFF99 {
 
     class GenOrario {
+        {static} - LOGGER: Logger
         {static} # GIORNI: int = 5
         {static} # ORE: int = 9
         {static} - MAX_SLOT: int = 32
@@ -209,7 +221,6 @@ package "backend.algoritmo" #AAFF99 {
         - espandiGruppoMateria(gruppo: List<Lezione>): List<Slot>
         # getSlotLiberi(occupato: boolean[][], nomeDocente: String, rnd: Random): List<int[]>
         # getSlotLiberi(occupato: boolean[][], docenti: List<Docente>, rnd: Random): List<int[]>
-        # ordinaSlotLiberi(liberi: List<int[]>, nomeDocente: String): void
         # ordinaSlotLiberi(liberi: List<int[]>, docenti: List<Docente>): void
         + getDocentiUsati(): Set<String>
         + getErroriClassi(): Map<String, List<String>>
@@ -238,15 +249,12 @@ package "backend.algoritmo" #AAFF99 {
         - preferenzeDocenti: Map<String, Preferenza>
         + GenOrarioVincoli(cfg: ConfiguraVincoli)
         + GenOrarioVincoli()
-        + getVincoli(): ConfiguraVincoli
         + getPreferenzaDocente(nomeDocente: String): Preferenza
         # isSlotValido(nomeDocente: String, giorno: int, ora: int): boolean
         # ordinaSlotLiberi(liberi: List<int[]>, docenti: List<Docente>): void
-        + calcolaPenalitaSoft(nomeDocente: String, giorno: int, ora: int): int
-        + getOreDocenteNelGiorno(nomeDocente: String, giorno: int): List<Integer>
+        - bucheAggiunte(docente: String, giorno: int, ora: int): int
         {static} + calcolaOreBucheGiorno(ore: List<Integer>): int
         {static} + indiceGiorno(nomeGiorno: String): int
-        {static} + generaConVincoli(r: ReadCsv, lezioni: List<Lezione>, cartella: String): Istituto
         {static} + analizzaOrario(vincoli: ConfiguraVincoli, school: Istituto): Map<String, RisultatoVerificaDocente>
     }
 
@@ -286,6 +294,7 @@ package "backend.io" #F8CECC {
     }
 
     class BuildCsv {
+        {static} - LOGGER: Logger
         {static} - DEFAULT_OUTPUT_PATH: String
         {static} + scriviOrario(slotAssegnati: List<Slot>, outputPath: String, isClasse: boolean): void
         {static} + scriviOrario(slotAssegnati: List<Slot>, isClasse: boolean): void
@@ -417,6 +426,7 @@ package "backend.entità" #DDDDDD {
     record ConfiguraVincoli {
         - nomeScuola: String
         - preferenze: List<Preferenza>
+        + ConfiguraVincoli(nomeScuola: String, preferenze: List<Preferenza>)
         + nomeScuola(): String
         + preferenze(): List<Preferenza>
     }
@@ -428,6 +438,7 @@ package "backend.entità" #DDDDDD {
         - noPrimaH: boolean
         - noUltimaH: boolean
         - riduciOreBuche: boolean
+        + Preferenza(docente: String, giornoLibero: String, limiteH: int, noPrimaH: boolean, noUltimaH: boolean, riduciOreBuche: boolean)
         + Preferenza(docente: String, giornoLibero: String, limiteH: int, noPrimaH: boolean, noUltimaH: boolean)
         + docente(): String
         + giornoLibero(): String
@@ -479,34 +490,7 @@ package "backend.entità" #DDDDDD {
         {static} + plessoSaraceno(): List<String>
         {static} + plessoRomegialli(): List<String>
     }
-
-    ' Disposizione interna su 2 righe
-    Istituto -[hidden]down-> ConfiguraVincoli
-    Slot -[hidden]down-> Preferenza
-    Lezione -[hidden]down-> Giorni
-    Docente -[hidden]down-> OrarioLezioni
-    Classe -[hidden]down-> PlessoScuola
 }
-
-ReadCsv -[hidden]down-> ReadVincoliJSON
-BuildCsv -[hidden]down-> WriteOnJSON
-TabellaOrsonPDF -[hidden]down-> ColoriOrario
-
-' Posizionamento tra package
-Main -[hidden]right-> Vis
-Main -[hidden]down-> HomeWindow
-HomeWindow -[hidden]right-> ClasseOrario
-ClasseOrario -[hidden]right-> ProfessoreOrario
-ProfessoreOrario -[hidden]right-> SelezionaPreferenze
-
-HomeWindow -[hidden]down-> OrarioManager
-
-OrarioManager -[hidden]down-> GenOrario
-OrarioManager -[hidden]down-> ReadCsv
-GenOrario -[hidden]right-> ReadCsv
-
-GenOrario -[hidden]down-> Istituto
-ReadCsv -[hidden]down-> Classe
 
 ' Collegamenti tra classi
 Main ..> OrarioManager
@@ -528,6 +512,8 @@ SelezionaPreferenze ..> OrarioManager
 SelezionaPreferenze ..> ReadVincoliJSON
 SelezionaPreferenze ..> WriteOnJSON
 SelezionaPreferenze ..> ProfessoreOrario
+SelezionaPreferenze ..> Preferenza
+SelezionaPreferenze ..> Giorni
 
 OrarioManager o-- ReadCsv
 OrarioManager o-- Lezione
@@ -544,12 +530,20 @@ GenOrario +-- Esito
 GenOrarioVincoli +-- RisultatoVerificaDocente
 GenOrario ..> Istituto
 GenOrario ..> ReadCsv
+GenOrario ..> Giorni
+GenOrario ..> OrarioLezioni
 GenOrarioVincoli o-- ConfiguraVincoli
 GenOrarioVincoli o-- Preferenza
 GenOrarioVincoli ..> ReadVincoliJSON
 
 ReadVincoliJSON o-- ConfiguraVincoli
 WriteOnJSON ..> ReadVincoliJSON
+WriteOnJSON ..> ConfiguraVincoli
+WriteOnJSON ..> Preferenza
+BuildCsv ..> Slot
+BuildCsv ..> Giorni
+BuildCsv ..> OrarioLezioni
+TabellaOrsonPDF ..> Slot
 TabellaOrsonPDF ..> ColoriOrario
 
 Istituto o-- Docente

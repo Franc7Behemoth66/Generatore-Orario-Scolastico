@@ -9,8 +9,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class BuildCsv {
+
+    private static final Logger LOGGER = Logger.getLogger(BuildCsv.class.getName());
 
     private static final String DEFAULT_OUTPUT_PATH =
             "src/main/java/com/quaini_rubini_dellamina";
@@ -100,9 +104,6 @@ public class BuildCsv {
         }
     }
 
-    public static void scriviOrario(List<Slot> slotAssegnati, boolean isClasse) throws IOException {
-        scriviOrario(slotAssegnati, DEFAULT_OUTPUT_PATH, isClasse);
-    }
 
     private static void apriPDF(File file) {
         if (!Desktop.isDesktopSupported()) return;
@@ -111,7 +112,7 @@ public class BuildCsv {
         try {
             desktop.open(file);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Impossibile aprire automaticamente il file CSV: " + file.getAbsolutePath(), e);
         }
     }
 }

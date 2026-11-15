@@ -7,6 +7,7 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.quaini_rubini_dellamina.backend.OrarioManager;
 import com.quaini_rubini_dellamina.backend.entità.ConfiguraVincoli;
 import com.quaini_rubini_dellamina.backend.entità.Docente;
+import com.quaini_rubini_dellamina.backend.entità.Giorni;
 import com.quaini_rubini_dellamina.backend.entità.Preferenza;
 import com.quaini_rubini_dellamina.backend.io.ReadVincoliJSON;
 import com.quaini_rubini_dellamina.backend.io.WriteOnJSON;
@@ -17,8 +18,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SelezionaPreferenze extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(SelezionaPreferenze.class.getName());
 
     private final JButton btnTema;
     private final JPanel cardForm;
@@ -41,7 +48,7 @@ public class SelezionaPreferenze extends JFrame {
         Font fontLabel  = new Font("SansSerif", Font.BOLD, 14);
         Font fontButton = new Font("SansSerif", Font.BOLD, 13);
 
-        // SEZIONE 1: INTESTAZIONE E PULSANTE CAMBIO TEMA
+        // INTESTAZIONE E PULSANTE CAMBIO TEMA
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -62,41 +69,40 @@ public class SelezionaPreferenze extends JFrame {
         headerPanel.add(btnTema, BorderLayout.EAST);
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // SEZIONE 2: SELEZIONE PREFERENZE E VINCOLI
-        cardForm = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 12, 10, 12);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST;
+        //SELEZIONE PREFERENZE E VINCOLI
+        cardForm = new JPanel(new BorderLayout(0, 16));
 
-        // Selezione Docente
+// Griglia etichetta | campo
+        JPanel campi = new JPanel(new GridLayout(3, 2, 12, 12));
+        campi.setOpaque(false);
+
         JLabel lblDocente = new JLabel("Docente:", createAdaptiveIcon("icons/user.svg", 16, 16), JLabel.LEFT);
         lblDocente.setFont(fontLabel);
         lblDocente.setIconTextGap(8);
-
         comboDocente = new JComboBox<>(caricaDocenti());
-        comboDocente.setPreferredSize(new Dimension(240, 34));
 
-        // Selezione Giorno Libero
         JLabel lblGiorno = new JLabel("Giorno libero:", createAdaptiveIcon("icons/calendar.svg", 16, 16), JLabel.LEFT);
         lblGiorno.setFont(fontLabel);
         lblGiorno.setIconTextGap(8);
-
-        String[] giorni = {"Nessuno", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"};
+        String[] giorni = {"Nessuno", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(),
+                Giorni.GIOVEDI.getNome(), Giorni.VENERDI.getNome()};
         comboGiornoLibero = new JComboBox<>(giorni);
-        comboGiornoLibero.setPreferredSize(new Dimension(240, 34));
 
-        // Limite Ore Giornaliere
         JLabel lblLimiteOre = new JLabel("Limite ore giornaliere (3 - 8):",
                 createAdaptiveIcon("icons/school.svg", 16, 16), JLabel.LEFT);
         lblLimiteOre.setFont(fontLabel);
         lblLimiteOre.setIconTextGap(8);
-
         spinnerLimiteOre = new JSpinner(new SpinnerNumberModel(5, 3, 8, 1));
-        spinnerLimiteOre.setPreferredSize(new Dimension(90, 34));
         spinnerLimiteOre.setFont(new Font("SansSerif", Font.BOLD, 14));
 
-        // Checkbox Vincoli Orari
+        campi.add(lblDocente);
+        campi.add(comboDocente);
+        campi.add(lblGiorno);
+        campi.add(comboGiornoLibero);
+        campi.add(lblLimiteOre);
+        campi.add(spinnerLimiteOre);
+
+// Checkbox in colonna
         chkNoPrimaOra = new JCheckBox("Evita la prima ora (no-prima-h)");
         chkNoPrimaOra.setFont(new Font("SansSerif", Font.PLAIN, 14));
         chkNoPrimaOra.setOpaque(false);
@@ -109,34 +115,18 @@ public class SelezionaPreferenze extends JFrame {
         chkRiduciOreBuche.setFont(new Font("SansSerif", Font.PLAIN, 14));
         chkRiduciOreBuche.setOpaque(false);
 
-        // Posizionamento Componenti nel GridBagLayout
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.4;
-        cardForm.add(lblDocente, gbc);
-        gbc.gridx = 1; gbc.weightx = 0.6;
-        cardForm.add(comboDocente, gbc);
+        JPanel vincoli = new JPanel(new GridLayout(0, 1, 0, 6));
+        vincoli.setOpaque(false);
+        vincoli.add(chkNoPrimaOra);
+        vincoli.add(chkNoUltimaOra);
+        vincoli.add(chkRiduciOreBuche);
 
-        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.4;
-        cardForm.add(lblGiorno, gbc);
-        gbc.gridx = 1; gbc.weightx = 0.6;
-        cardForm.add(comboGiornoLibero, gbc);
-
-        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0.4;
-        cardForm.add(lblLimiteOre, gbc);
-        gbc.gridx = 1; gbc.weightx = 0.6;
-        cardForm.add(spinnerLimiteOre, gbc);
-
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
-        cardForm.add(chkNoPrimaOra, gbc);
-
-        gbc.gridy = 4;
-        cardForm.add(chkNoUltimaOra, gbc);
-
-        gbc.gridy = 5;
-        cardForm.add(chkRiduciOreBuche, gbc);
+        cardForm.add(campi, BorderLayout.NORTH);
+        cardForm.add(vincoli, BorderLayout.CENTER);
 
         mainPanel.add(cardForm, BorderLayout.CENTER);
 
-        // SEZIONE 3: BARRA INFERIORE CON PULSANTI DI AZIONE
+        // BARRA INFERIORE CON PULSANTI DI AZIONE
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setOpaque(false);
 
@@ -155,7 +145,7 @@ public class SelezionaPreferenze extends JFrame {
         bottomPanel.add(btnApplica, BorderLayout.EAST);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // SEZIONE 4: ACTION LISTENER
+        //  ACTION LISTENER
         comboDocente.addActionListener(e -> caricaPreferenzeEsistenti());
         caricaPreferenzeEsistenti();
 
@@ -165,7 +155,13 @@ public class SelezionaPreferenze extends JFrame {
         });
 
         btnApplica.addActionListener(e -> {
-            if (comboDocente.getSelectedItem() == null) return;
+            if (comboDocente.getSelectedItem() == null || "Nessun docente disponibile".equals(comboDocente.getSelectedItem().toString())) {
+                JOptionPane.showMessageDialog(this,
+                        "Nessun docente selezionato o disponibile.",
+                        "Selezione Richiesta",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
             String docente = comboDocente.getSelectedItem().toString();
             String giornoScelto = comboGiornoLibero.getSelectedItem().toString();
@@ -186,11 +182,21 @@ public class SelezionaPreferenze extends JFrame {
 
             try {
                 WriteOnJSON.salva(nuovaPreferenza);
+                try {
+                    OrarioManager.getInstance().caricaDataset();
+                } catch (Exception reloadEx) {
+                    LOGGER.log(Level.WARNING, "Errore ricaricamento orario post salvataggio preferenze", reloadEx);
+                    JOptionPane.showMessageDialog(this,
+                            "Preferenze salvate, ma si è verificato un errore durante l'aggiornamento dell'orario:\n" + reloadEx.getMessage(),
+                            "Avviso Ricaricamento",
+                            JOptionPane.WARNING_MESSAGE);
+                }
                 JOptionPane.showMessageDialog(this,
                         "Preferenze salvate nel file JSON per " + docente + "!",
                         "Preferenze Salvate",
                         JOptionPane.INFORMATION_MESSAGE);
             } catch (IOException ex) {
+                LOGGER.log(Level.SEVERE, "Errore durante il salvataggio preferenze", ex);
                 JOptionPane.showMessageDialog(this,
                         "Errore durante il salvataggio nel file JSON:\n" + ex.getMessage(),
                         "Errore Scrittura JSON",
@@ -200,7 +206,8 @@ public class SelezionaPreferenze extends JFrame {
 
         applyThemeStyles();
 
-        setSize(580, 480);
+        setResizable(false);
+        pack();
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
@@ -221,7 +228,8 @@ public class SelezionaPreferenze extends JFrame {
                             .findFirst()
                             .orElse(null);
                 }
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Impossibile leggere file vincoli JSON per il docente " + nomeProf, e);
             }
         }
 
@@ -247,12 +255,20 @@ public class SelezionaPreferenze extends JFrame {
 
     private String[] caricaDocenti() {
         try {
-            return OrarioManager.getInstance().getDocenti().stream()
+            List<Docente> docenti = OrarioManager.getInstance().getDocenti();
+            if (docenti.isEmpty()) {
+                return new String[]{"Nessun docente disponibile"};
+            }
+            return docenti.stream()
                     .map(Docente::getNome)
                     .sorted()
                     .toArray(String[]::new);
         } catch (Exception e) {
-            return new String[]{"Del Nero Davide"};
+            LOGGER.log(Level.SEVERE, "Errore nel caricamento docenti", e);
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                    "Errore durante il caricamento dell'elenco docenti:\n" + e.getMessage(),
+                    "Errore Docenti", JOptionPane.ERROR_MESSAGE));
+            return new String[]{"Nessun docente disponibile"};
         }
     }
 
@@ -298,7 +314,7 @@ public class SelezionaPreferenze extends JFrame {
             applyThemeStyles();
             FlatLaf.updateUI();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.WARNING, "Errore durante il cambio del tema", ex);
         }
     }
 }

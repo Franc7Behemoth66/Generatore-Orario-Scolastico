@@ -6,8 +6,11 @@ import com.quaini_rubini_dellamina.backend.io.ReadCsv;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class GenOrario {
+
+    private static final Logger LOGGER = Logger.getLogger(GenOrario.class.getName());
 
     protected static final int GIORNI = Slot.GIORNI_SETTIMANA; // 5
     protected static final int ORE = Slot.ORE_GIORNO;          // 9 (6 mattina + pausa + 2 pomeriggio martedì)
@@ -71,7 +74,7 @@ public class GenOrario {
             err.addAll(e.nonPiazzate());
             String msg = "ATTENZIONE: classe " + keyClasse + " piazzate solo " + e.piazzati()
                     + "/" + target + " dopo " + MAX_TENTATIVI + " tentativi";
-            System.err.println(msg);
+            LOGGER.warning(msg);
             err.add(0, msg);
         }
 
@@ -368,10 +371,10 @@ public class GenOrario {
         Set<Classe> classi = r.getAllClassi();
         Istituto school = new Istituto(classi, r.getAllDocenti());
 
-        // 1. Pre-assegna le ore incrociate TEDESCO <-> FRANCESE tra classi parallele TUR e AFM
+        // Pre-assegna le ore incrociate TEDESCO <-> FRANCESE tra classi parallele TUR e AFM
         sincronizzaLingue(classi, lessons);
 
-        // 2. Prima le classi con più compresenze (più vincolate)
+        //  Prima le classi con più compresenze (più vincolate)
         Map<String, Long> compresenze = new HashMap<>();
         for (Classe c : classi) {
             long n = espandiInSlot(lessons.stream().filter(l -> l.getClasse().equals(c)).toList()).stream()

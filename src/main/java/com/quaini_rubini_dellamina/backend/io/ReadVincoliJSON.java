@@ -20,16 +20,8 @@ public class ReadVincoliJSON {
     public ReadVincoliJSON(String path) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         this.configuraVincoli = objectMapper.readValue(new File(path), ConfiguraVincoli.class);
-
-        System.out.println(configuraVincoli.nomeScuola());
-        for (Preferenza p : configuraVincoli.preferenze()) {
-            System.out.println(p);
-        }
     }
 
-    public ConfiguraVincoli getConfiguraVincoli() {
-        return configuraVincoli;
-    }
 
     public static ConfiguraVincoli leggi() throws IOException {
         return leggi(FILE_INPUT_VINCOLI);
