@@ -25,7 +25,6 @@ package "com.quaini_rubini_dellamina" #FFF2CC {
         {static} + main(args: String[]): void
     }
 }
-
 package "Legenda" <<Rectangle>> {
     rectangle Vis [
         **Visibilità**
@@ -34,6 +33,27 @@ package "Legenda" <<Rectangle>> {
         <color:#F57C00>◆</color> protected
         <color:#1976D2>▲</color> package-private
     ]
+
+    class "class"
+    enum "enum"
+    record "record"
+
+    class Padre
+    class Figlio
+    class Intero
+    class ParteComp
+    class Contenitore
+    class ParteAggr
+    class Client
+    class Server
+    class Frigo
+    record RecordPartiF
+
+    Padre <|-- Figlio : ereditarietà
+    Intero *-- ParteComp : composizione
+    Contenitore o-- ParteAggr : aggregazione
+    Client ..> Server : dipendenza
+    Frigo +-- RecordPartiF : classe annidata
 }
 
 ' Interfaccia grafica
