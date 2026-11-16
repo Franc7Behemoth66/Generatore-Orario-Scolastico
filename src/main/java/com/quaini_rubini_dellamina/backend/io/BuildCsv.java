@@ -31,9 +31,9 @@ public class BuildCsv {
             Arrays.fill(riga, "");
 
         int rigaPausa = OrarioLezioni.PAUSA.ordinal();
-        for (int giorno = 0; giorno < Slot.GIORNI_SETTIMANA; giorno++) {
-            griglia[giorno][rigaPausa] = "PAUSA";
-        }
+        int colonnaPausa = Giorni.MARTEDI.ordinal();
+            griglia[colonnaPausa][rigaPausa] = "PAUSA";
+
 
         slotAssegnati = slotAssegnati.stream()
                 .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)

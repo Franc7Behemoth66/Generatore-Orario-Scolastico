@@ -7,6 +7,7 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.quaini_rubini_dellamina.backend.OrarioManager;
 import com.quaini_rubini_dellamina.backend.entità.*;
 import com.quaini_rubini_dellamina.backend.io.ColoriOrario;
+import org.jdesktop.swingx.autocomplete.AutoCompleteDecorator;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -72,15 +73,21 @@ public class ClasseOrario extends JFrame {
 
         JLabel lblAnno = new JLabel("Classe:");
         lblAnno.setFont(fontLabel);
-        comboAnno = new JComboBox<>(new String[]{"1", "2", "3", "4", "5"});
+
+        // null come prima voce: filtro nessun anno
+        comboAnno = new JComboBox<>(new String[]{null, "1", "2", "3", "4", "5"});
         comboAnno.setPreferredSize(new Dimension(60, 32));
 
+        // null come prima voce: filtro nessun indirizzo
         String[] indirizziPlesso = getIndirizziPerPlesso();
-        comboIndirizzo = new JComboBox<>(indirizziPlesso);
-        comboIndirizzo.setPreferredSize(new Dimension(85, 32));
+        String[] indirizziConVuoto = new String[indirizziPlesso.length + 1];
+        System.arraycopy(indirizziPlesso, 0, indirizziConVuoto, 1, indirizziPlesso.length);
+        comboIndirizzo = new JComboBox<>(indirizziConVuoto);
+        comboIndirizzo.setPreferredSize(new Dimension(110, 32));
 
         comboChiaveClasse = new JComboBox<>();
         comboChiaveClasse.setPreferredSize(new Dimension(110, 32));
+        AutoCompleteDecorator.decorate(comboChiaveClasse);
 
         comboIndirizzo.addActionListener(e -> aggiornaChiaviClasse());
         comboAnno.addActionListener(e -> aggiornaChiaviClasse());
@@ -382,7 +389,7 @@ public class ClasseOrario extends JFrame {
     }
 
     private String[] getIndirizziPerPlesso() {
-        List<String> indirizziPlesso = plesso.equalsIgnoreCase("saraceno")
+        List<String> indirizziPlesso = plesso.equalsIgnoreCase("Saraceno")
                 ? PlessoScuola.plessoSaraceno()
                 : PlessoScuola.plessoRomegialli();
 
@@ -403,15 +410,19 @@ public class ClasseOrario extends JFrame {
         comboChiaveClasse.removeAllItems();
         String indirizzo = (String) comboIndirizzo.getSelectedItem();
         String annoStr   = (String) comboAnno.getSelectedItem();
-        if (indirizzo == null || annoStr == null) return;
 
-        int anno = Integer.parseInt(annoStr);
+        // null = filtro non impostato, quindi quel criterio non restringe la lista
+        Integer anno = annoStr == null ? null : Integer.valueOf(annoStr);
         List<String> chiaviFiltrate = new ArrayList<>();
 
         for (Classe c : OrarioManager.getInstance().getClassi()) {
-            if (c.getAnno() == anno && c.getIndirizzo().equalsIgnoreCase(indirizzo))
+            boolean okPlesso    = plesso.equalsIgnoreCase(PlessoScuola.getPlesso(c.getIndirizzo()));
+            boolean okAnno      = anno == null || c.getAnno() == anno;
+            boolean okIndirizzo = indirizzo == null || indirizzo.equalsIgnoreCase(c.getIndirizzo()) ;
+            if (okAnno && okIndirizzo && okPlesso)
                 chiaviFiltrate.add(c.getChiave());
         }
+
         Collections.sort(chiaviFiltrate);
         for (String chiave : chiaviFiltrate) comboChiaveClasse.addItem(chiave);
     }

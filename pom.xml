@@ -51,6 +51,12 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.22.4</version>
         </dependency>
+        <!-- Per fare in modo che si possa cercare nelle ComboBox -->
+        <dependency>
+            <groupId>org.swinglabs.swingx</groupId>
+            <artifactId>swingx-all</artifactId>
+            <version>1.6.5-1</version>
+        </dependency>
 
     </dependencies>
     <build>

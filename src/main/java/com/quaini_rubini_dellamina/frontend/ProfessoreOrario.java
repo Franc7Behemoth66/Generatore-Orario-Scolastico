@@ -8,6 +8,7 @@ import com.quaini_rubini_dellamina.backend.OrarioManager;
 import com.quaini_rubini_dellamina.backend.algoritmo.GenOrarioVincoli;
 import com.quaini_rubini_dellamina.backend.entità.*;
 import com.quaini_rubini_dellamina.backend.io.*;
+import org.jdesktop.swingx.autocomplete.AutoCompleteDecorator;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -70,6 +71,7 @@ public class ProfessoreOrario extends JFrame {
 
         String[] professori = caricaDocenti();
         comboProf = new JComboBox<>(professori);
+        AutoCompleteDecorator.decorate(comboProf); // per fare in modo che si possa cercare il nome del docente nella combo
         comboProf.setPreferredSize(new Dimension(220, 32));
 
         JButton btnVisualizza = new JButton("VISUALIZZA ORARIO",
@@ -374,7 +376,7 @@ public class ProfessoreOrario extends JFrame {
         int gLibero = GenOrarioVincoli.indiceGiorno(prefCorrente.giornoLibero());
         if (gLibero >= 0 && gLibero == giorno) return true;
         if (prefCorrente.noPrimaH() && ora == 0) return true;
-        if (prefCorrente.noUltimaH() && ora == (Slot.ORE_GIORNO - 1)) return true;
+        if (prefCorrente.noUltimaH() && ora == GenOrarioVincoli.ultimaOraGiorno(giorno)) return true;
         return false;
     }
 

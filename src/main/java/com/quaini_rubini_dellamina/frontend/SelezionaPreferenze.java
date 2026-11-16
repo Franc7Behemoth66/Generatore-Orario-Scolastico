@@ -11,6 +11,7 @@ import com.quaini_rubini_dellamina.backend.entità.Giorni;
 import com.quaini_rubini_dellamina.backend.entità.Preferenza;
 import com.quaini_rubini_dellamina.backend.io.ReadVincoliJSON;
 import com.quaini_rubini_dellamina.backend.io.WriteOnJSON;
+import org.jdesktop.swingx.autocomplete.AutoCompleteDecorator;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -80,6 +81,7 @@ public class SelezionaPreferenze extends JFrame {
         lblDocente.setFont(fontLabel);
         lblDocente.setIconTextGap(8);
         comboDocente = new JComboBox<>(caricaDocenti());
+        AutoCompleteDecorator.decorate(comboDocente); // per fare in modo che si possa cercare il nome del docente nella combo
 
         JLabel lblGiorno = new JLabel("Giorno libero:", createAdaptiveIcon("icons/calendar.svg", 16, 16), JLabel.LEFT);
         lblGiorno.setFont(fontLabel);

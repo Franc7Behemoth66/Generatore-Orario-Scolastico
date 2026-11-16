@@ -40,4 +40,10 @@ public enum PlessoScuola {
         }
         return CRomegialli;
     }
+
+    public static String getPlesso(String indirizzo) {
+        for (PlessoScuola ps : values())
+            if (ps.name().equalsIgnoreCase(indirizzo)) return ps.getNome();
+        return "";
+    }
 }
