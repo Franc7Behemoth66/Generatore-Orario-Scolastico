@@ -27,6 +27,7 @@ public class Docente {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(nome);
+        return Objects.hashCode(nome.toLowerCase());
     }
+
 }

@@ -94,7 +94,7 @@ public class SelezionaPreferenze extends JFrame {
                 createAdaptiveIcon("icons/school.svg", 16, 16), JLabel.LEFT);
         lblLimiteOre.setFont(fontLabel);
         lblLimiteOre.setIconTextGap(8);
-        spinnerLimiteOre = new JSpinner(new SpinnerNumberModel(5, 3, 8, 1));
+        spinnerLimiteOre = new JSpinner(new SpinnerNumberModel(8, 3, 8, 1));
         spinnerLimiteOre.setFont(new Font("SansSerif", Font.BOLD, 14));
 
         campi.add(lblDocente);
@@ -248,7 +248,7 @@ public class SelezionaPreferenze extends JFrame {
             chkRiduciOreBuche.setSelected(pref.riduciOreBuche());
         } else {
             comboGiornoLibero.setSelectedItem("Nessuno");
-            spinnerLimiteOre.setValue(5);
+            spinnerLimiteOre.setValue(8);
             chkNoPrimaOra.setSelected(false);
             chkNoUltimaOra.setSelected(false);
             chkRiduciOreBuche.setSelected(false);

@@ -40,6 +40,7 @@ package "Legenda" <<Rectangle>> {
 package "frontend" #DAE8FC {
 
     class HomeWindow {
+        {static} - LOGGER: Logger
         - btnTema: JButton
         - btnSegnalazioni: JButton
         - l2: JLabel
@@ -63,6 +64,7 @@ package "frontend" #DAE8FC {
     }
 
     class ClasseOrario {
+        {static} - LOGGER: Logger
         - plesso: String
         - comboIndirizzo: JComboBox<String>
         - comboAnno: JComboBox<String>
@@ -83,6 +85,7 @@ package "frontend" #DAE8FC {
     }
 
     class ProfessoreOrario {
+        {static} - LOGGER: Logger
         - lblInfoBottom: JLabel
         - btnVincoliProf: JButton
         - btnTema: JButton
@@ -257,6 +260,7 @@ package "backend.algoritmo" #AAFF99 {
 package "backend.io" #F8CECC {
 
     class ReadCsv {
+        {static} - LOGGER: Logger
         {static} - DEFAULT_PATH: String
         - filepath: String
         - classi: HashSet<Classe>
@@ -464,6 +468,7 @@ package "backend.entità" #DDDDDD {
         + getNome(): String
         {static} + plessoSaraceno(): List<String>
         {static} + plessoRomegialli(): List<String>
+        {static} + getPlesso(indirizzo: String): String
     }
 }
 
