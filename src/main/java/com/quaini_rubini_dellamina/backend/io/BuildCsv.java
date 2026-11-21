@@ -88,7 +88,8 @@ public class BuildCsv {
                     Giorni.MARTEDI.getNome(),
                     Giorni.MERCOLEDI.getNome(),
                     Giorni.GIOVEDI.getNome(),
-                    Giorni.VENERDI.getNome()
+                    Giorni.VENERDI.getNome(),
+                    Giorni.SABATO.getNome()
             });
 
             // Righe: una per ogni ora della giornata (inclusa la pausa 14-15)

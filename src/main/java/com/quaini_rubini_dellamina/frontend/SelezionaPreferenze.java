@@ -19,10 +19,12 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class SelezionaPreferenze extends JFrame {
 
@@ -86,15 +88,19 @@ public class SelezionaPreferenze extends JFrame {
         JLabel lblGiorno = new JLabel("Giorno libero:", createAdaptiveIcon("icons/calendar.svg", 16, 16), JLabel.LEFT);
         lblGiorno.setFont(fontLabel);
         lblGiorno.setIconTextGap(8);
-        String[] giorni = {"Nessuno", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(),
-                Giorni.GIOVEDI.getNome(), Giorni.VENERDI.getNome()};
-        comboGiornoLibero = new JComboBox<>(giorni);
+
+        String[] finaldays = Stream.concat(
+                Stream.of("Nessuno"),
+                Arrays.stream(Giorni.values()).map(Giorni::getNome)
+        ).toArray(String[]::new);
+
+        comboGiornoLibero = new JComboBox<>(finaldays);
 
         JLabel lblLimiteOre = new JLabel("Limite ore giornaliere (3 - 8):",
                 createAdaptiveIcon("icons/school.svg", 16, 16), JLabel.LEFT);
         lblLimiteOre.setFont(fontLabel);
         lblLimiteOre.setIconTextGap(8);
-        spinnerLimiteOre = new JSpinner(new SpinnerNumberModel(8, 3, 8, 1));
+        spinnerLimiteOre = new JSpinner(new SpinnerNumberModel(7, 3, 7, 1));
         spinnerLimiteOre.setFont(new Font("SansSerif", Font.BOLD, 14));
 
         campi.add(lblDocente);
@@ -248,7 +254,7 @@ public class SelezionaPreferenze extends JFrame {
             chkRiduciOreBuche.setSelected(pref.riduciOreBuche());
         } else {
             comboGiornoLibero.setSelectedItem("Nessuno");
-            spinnerLimiteOre.setValue(8);
+            spinnerLimiteOre.setValue(7);
             chkNoPrimaOra.setSelected(false);
             chkNoUltimaOra.setSelected(false);
             chkRiduciOreBuche.setSelected(false);

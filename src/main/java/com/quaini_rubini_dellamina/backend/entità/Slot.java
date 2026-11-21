@@ -3,15 +3,15 @@ package com.quaini_rubini_dellamina.backend.entità;
 import java.util.Objects;
 
 //Rappresenta un'ora di lezione piazzata nell'orario settimanale.
-//indice = giorno * 6 + ora  (5 giorni × 6 ore = 30 slot totali per classe/ orario docenti futuro)
+//indice = giorno * 5 + ora  (6 giorni × 5 ore = 30 slot totali per classe/ orario docenti futuro + 2 ore pomeriggio)
 
 public class Slot {
     private Lezione lezione;
     private int indice = -1;
     private boolean assegnato;
 
-    public static final int ORE_GIORNO = OrarioLezioni.values().length;  // 6
-    public static final int GIORNI_SETTIMANA = Giorni.values().length;   // 5
+    public static final int ORE_GIORNO = OrarioLezioni.values().length;  // 5
+    public static final int GIORNI_SETTIMANA = Giorni.values().length;   // 6
 
     public Slot(Lezione lezione, int indice) {
         this.lezione = lezione;
@@ -57,12 +57,12 @@ public class Slot {
         return lezione == null ? true : false;
     }
 
-    // Restituisce l'indice del giorno (0 = Lunedì … 4 = Venerdì).
+    // Restituisce l'indice del giorno (0 = Lunedì … 5 = Sabato).
     public int indexGiorno() {
         return indice / ORE_GIORNO;
     }
 
-    // Restituisce l'indice dell'ora nella giornata (0 = prima … 5 = sesta).
+    // Restituisce l'indice dell'ora nella giornata (0 = prima … 4 quinta).
     public int indexOra() {
         return indice % ORE_GIORNO;
     }

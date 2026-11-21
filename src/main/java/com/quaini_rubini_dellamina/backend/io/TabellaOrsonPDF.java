@@ -1,9 +1,6 @@
 package com.quaini_rubini_dellamina.backend.io;
 
-import com.orsonpdf.PDFDocument;
-import com.orsonpdf.PDFGraphics2D;
-import com.orsonpdf.PDFHints;
-import com.orsonpdf.Page;
+import com.orsonpdf.*;
 import com.quaini_rubini_dellamina.backend.entità.*;
 
 import java.awt.Color;
@@ -18,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public class TabellaOrsonPDF {
 
@@ -28,12 +26,15 @@ public class TabellaOrsonPDF {
 
     public static void creaPDF(List<Slot> slotPDF, String dir, boolean isClasse) {
         PDFDocument pdfDoc = new PDFDocument();
-        Page page = pdfDoc.createPage(new Rectangle(1850, 800));
+        Page page = pdfDoc.createPage(new Rectangle(2300, 800));
         PDFGraphics2D g2 = page.getGraphics2D();
         g2.setRenderingHint(PDFHints.KEY_DRAW_STRING_TYPE, PDFHints.VALUE_DRAW_STRING_TYPE_VECTOR);
 
-        String[] colonne = {"Ora", Giorni.LUNEDI.getNome(), Giorni.MARTEDI.getNome(), Giorni.MERCOLEDI.getNome(),
-                Giorni.GIOVEDI.getNome(), Giorni.VENERDI.getNome()};
+        String[] colonne = Stream.concat(
+                Stream.of("Ore"),
+                Arrays.stream(Giorni.values()).map(Giorni::getNome)
+        ).toArray(String[]::new);
+
 
         String[][] dati = new String[Slot.ORE_GIORNO][colonne.length];
         Color[][] colori = new Color[Slot.ORE_GIORNO][colonne.length];
@@ -88,7 +89,7 @@ public class TabellaOrsonPDF {
         int xInizio = 40;
         int yInizio = 60;
         int altezzaRiga = 42;
-        int[] larghezze = {70, 340, 340, 340, 340, 340};
+        int[] larghezze = {70, 340, 340, 340, 340, 340,340};
         int larghezzaTotale = Arrays.stream(larghezze).sum();
         int altezzaTabellaTotale = altezzaRiga * (dati.length + 1);
 

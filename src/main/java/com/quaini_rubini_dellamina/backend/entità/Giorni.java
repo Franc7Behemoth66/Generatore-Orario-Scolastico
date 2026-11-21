@@ -5,7 +5,8 @@ public enum Giorni {
     MARTEDI("Martedì"),
     MERCOLEDI("Mercoledì"),
     GIOVEDI("Giovedì"),
-    VENERDI("Venerdì");
+    VENERDI("Venerdì"),
+    SABATO("Sabato");
 
     private final String nome;
 

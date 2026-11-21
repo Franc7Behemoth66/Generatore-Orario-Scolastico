@@ -12,10 +12,10 @@ public class GenOrario {
 
     private static final Logger LOGGER = Logger.getLogger(GenOrario.class.getName());
 
-    protected static final int GIORNI = Slot.GIORNI_SETTIMANA; // 5
-    protected static final int ORE = Slot.ORE_GIORNO;          // 9 (6 mattina + pausa + 2 pomeriggio martedì)
+    protected static final int GIORNI = Slot.GIORNI_SETTIMANA; // 6
+    protected static final int ORE = Slot.ORE_GIORNO;          // 8 (5 mattina + pausa + 2 pomeriggio martedì/giovedì)
 
-    private static final int MAX_SLOT = 32; // 5 giorni x 6 ore + 2 ore pomeriggio martedì
+    private static final int MAX_SLOT = 32; // 6 giorni x 5 ore + 2 ore pomeriggio martedì
     private static final int MAX_TENTATIVI = 200;
 
     protected final Set<String> docentiUsati = new HashSet<>();
@@ -23,6 +23,7 @@ public class GenOrario {
     protected final Map<String, List<String>> erroriClassi = new LinkedHashMap<>();
 
     private final Map<String, List<Slot>> slotPreassegnati = new HashMap<>();
+    private static boolean giornoPome;
 
     // Risultato di un singolo tentativo di piazzamento
     private record Esito(List<Slot> slots, boolean[][] occupato, List<String> overflow, List<String> nonPiazzate) {
@@ -33,14 +34,20 @@ public class GenOrario {
     public static boolean isSlotEsistente(int giorno, int ora) {
         int idxPausa = OrarioLezioni.PAUSA.ordinal();
         if (ora == idxPausa) return false;
-        return ora < idxPausa || giorno == Giorni.MARTEDI.ordinal();
+        return ora < idxPausa || giorno == giornoPomeriggio();
     }
 
-    // Ultima ora: 16-17 (indice 8) al martedì, 13-14 (indice 5) negli altri giorni
+    public static int giornoPomeriggio(){
+        return (isPomeMartedi())
+                ? Giorni.MARTEDI.ordinal()
+                : Giorni.GIOVEDI.ordinal();
+    }
+
+    // Ultima ora: 15-16 (indice 7) al martedì, 13-14 (indice 5) negli altri giorni
     public static int ultimaOraGiorno(int giorno) {
-        return (giorno == Giorni.MARTEDI.ordinal())
-                ? OrarioLezioni.OTTAVA.ordinal()
-                : OrarioLezioni.SESTA.ordinal();
+        return (giorno ==  giornoPomeriggio())
+                ? OrarioLezioni.SETTIMA.ordinal()
+                : OrarioLezioni.QUINTA.ordinal();
     }
 
     public List<Slot> genOrarioOnClasse(List<Lezione> tutteLeLezioni, String keyClasse) {
@@ -166,15 +173,16 @@ public class GenOrario {
 
     // Indirizzi in cui TEDESCO e FRANCESE si fanno insieme (sdoppiamento)
     private static boolean haSdoppiamentoLingue(String indirizzo) {
-        return "TUR".equalsIgnoreCase(indirizzo) || "AFM".equalsIgnoreCase(indirizzo);
+        return "TUR".equalsIgnoreCase(indirizzo) || "AFM".equalsIgnoreCase(indirizzo)
+                || "SIA".equalsIgnoreCase(indirizzo);
     }
 
-    // Sincronizza le coppie di classi parallele TUR e AFM dello stesso indirizzo e anno con lingue separate (es. 4A Francese / 4B Tedesco)
+    // Sincronizza le coppie di classi parallele TUR, SIA e AFM dello stesso indirizzo e anno con lingue separate (es. 4A Francese / 4B Tedesco)
     private void sincronizzaLingue(Set<Classe> classi, List<Lezione> lessons) {
         slotPreassegnati.clear();
         if (classi == null || lessons == null) return;
 
-        // Chiave "indirizzo + anno": TUR e AFM non vanno mai mescolati
+        // Chiave "indirizzo + anno": TUR, SIA e  AFM non vanno mai mescolati
         Map<String, List<Classe>> perIndirizzoAnno = new TreeMap<>();
         for (Classe c : classi)
             if (haSdoppiamentoLingue(c.getIndirizzo()))
@@ -342,7 +350,12 @@ public class GenOrario {
 
     // Il docente non deve essere occupato in un'altra classe alla stessa ora
     protected boolean isSlotValido(String nomeDocente, int giorno, int ora) {
-        return !docentiUsati.contains(chiaveDocente(nomeDocente, giorno, ora));
+        if (docentiUsati.contains(chiaveDocente(nomeDocente, giorno, ora))) return false;
+        int[] ore = oreDocenteGiorno.get(nomeDocente);
+        int totale = (ore == null) ? 0 : Arrays.stream(ore).sum();
+
+        return totale < 25;
+
     }
 
     protected void registra(String nomeDocente, int giorno, int ora) {
@@ -364,6 +377,9 @@ public class GenOrario {
         oreDocenteGiorno.clear();
         backup.forEach((k, v) -> oreDocenteGiorno.put(k, v.clone()));
     }
+    public static boolean isPomeMartedi(){
+        return giornoPome;
+    }
 
     // Genera l'orario di tutte le classi (e deduce quello dei prof)
     public Istituto generaIstituto(ReadCsv r, List<Lezione> lessons, String cartella) throws IOException, CsvValidationException {
@@ -371,7 +387,7 @@ public class GenOrario {
         Set<Classe> classi = r.getAllClassi();
         Istituto school = new Istituto(classi, r.getAllDocenti());
 
-        // Pre-assegna le ore incrociate TEDESCO <-> FRANCESE tra classi parallele TUR e AFM
+        // Pre-assegna le ore incrociate TEDESCO <-> FRANCESE tra classi parallele TUR, AFM e SIA
         sincronizzaLingue(classi, lessons);
 
         //  Prima le classi con più compresenze (più vincolate)
@@ -381,16 +397,20 @@ public class GenOrario {
                     .filter(s -> s.getLezione().hasCompresenza())
                     .count();
             compresenze.put(c.getChiave(), n);
+            System.out.println(c);
         }
 
         List<Classe> ordinate = classi.stream()
                 .sorted(Comparator
-                        .comparingLong((Classe c) -> compresenze.get(c.getChiave())).reversed()
+                        .comparing((Classe c) -> !c.getChiave().equals("4A-INFO")) // false < true → 4A-INF prima
+                        .thenComparing(Comparator.comparingLong((Classe c) -> compresenze.get(c.getChiave())).reversed())
                         .thenComparing(Classe::getChiave))
                 .toList();
 
-        for (Classe c : ordinate)
+        for (Classe c : ordinate) {
+            giornoPome = new Random().nextBoolean(); // true = martedì, false = giovedì
             school.setHforClasse(c.getChiave(), new ArrayList<>(genOrarioOnClasse(lessons, c.getChiave())));
+        }
 
         school.deduciOrariProf();
         return school;
