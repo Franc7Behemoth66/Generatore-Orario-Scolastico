@@ -31,6 +31,7 @@ public class ClasseOrario extends JFrame {
     private final JLabel lblInfoBottom;
     private final JButton btnErroriClasse;
     private final JButton btnTema;
+    private final JButton btnVisualizza;
     private final DefaultTableModel tableModel;
     private List<Slot> slotsCorrente = null;
     private List<String> erroriClasseCorrente = Collections.emptyList();
@@ -98,7 +99,7 @@ public class ClasseOrario extends JFrame {
         filterPanel.add(comboIndirizzo);
         filterPanel.add(comboChiaveClasse);
 
-        JButton btnVisualizza = new JButton("VISUALIZZA ORARIO",
+        btnVisualizza = new JButton("VISUALIZZA ORARIO",
                 createWhiteIcon("icons/lens.svg", 16, 16));
         btnVisualizza.setFont(fontButton);
         btnVisualizza.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -139,7 +140,7 @@ public class ClasseOrario extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(80);
 
         for (int i = 1; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setPreferredWidth(160);
+            table.getColumnModel().getColumn(i).setPreferredWidth(195);
         }
         table.setRowHeight(48);
         table.setRowHeight(OrarioLezioni.PAUSA.ordinal(), 26);
@@ -323,7 +324,7 @@ public class ClasseOrario extends JFrame {
                         maxRighe = Math.max(maxRighe, val.toString().split("<br>").length);
                     }
                 }
-                table.setRowHeight(row, Math.max(46, maxRighe * 17));
+                table.setRowHeight(row, Math.max(48, maxRighe * 21 + 8));
             }
 
             int totOre = (int) slotsCorrente.stream()
@@ -382,7 +383,7 @@ public class ClasseOrario extends JFrame {
             }
         });
 
-        setSize(1120, 780);
+        setSize(1280, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
@@ -451,6 +452,7 @@ public class ClasseOrario extends JFrame {
                 btnTema.setIcon(createAdaptiveIcon("icons/sun.svg", 18, 18));
             }
             FlatLaf.updateUI();
+            if (slotsCorrente != null) btnVisualizza.doClick();
         } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "Errore durante il cambio del tema", ex);
         }

@@ -31,9 +31,6 @@ public class BuildCsv {
             Arrays.fill(riga, "");
 
         int rigaPausa = OrarioLezioni.PAUSA.ordinal();
-        int colonnaPausa = Giorni.MARTEDI.ordinal();
-            griglia[colonnaPausa][rigaPausa] = "PAUSA";
-
 
         slotAssegnati = slotAssegnati.stream()
                 .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
@@ -51,6 +48,9 @@ public class BuildCsv {
                     // Formato cella: key della classe
                 else
                     griglia[g][o] = l.getClasse().getChiave();
+
+                // Pomeriggio in questo giorno → compare la pausa (martedì o giovedì, dedotto dagli slot)
+                if (o > rigaPausa) griglia[g][rigaPausa] = "PAUSA";
             }
         }
 

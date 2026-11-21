@@ -44,9 +44,6 @@ public class TabellaOrsonPDF {
         }
 
         int rigaPausa = OrarioLezioni.PAUSA.ordinal();
-        int colonnaPausa = Giorni.MARTEDI.ordinal() + 1 ;
-        dati[rigaPausa][colonnaPausa] = "PAUSA";
-        colori[rigaPausa][colonnaPausa] = new Color(230, 230, 230);
 
         List<Slot> slotConLezione = slotPDF.stream()
                 .filter(s -> s != null && !s.isVuoto() && s.getLezione() != null && s.getLezione().getMateria() != null)
@@ -67,6 +64,12 @@ public class TabellaOrsonPDF {
                 } else {
                     dati[o][g + 1] = l.getClasse().getChiave();
                     colori[o][g + 1] = ColoriOrario.getColoreProfessore();
+                }
+
+                // Pomeriggio in questo giorno -> compare la pausa (martedì o giovedì, dedotto dagli slot)
+                if (o > rigaPausa) {
+                    dati[rigaPausa][g + 1] = "PAUSA";
+                    colori[rigaPausa][g + 1] = new Color(230, 230, 230);
                 }
             }
         }

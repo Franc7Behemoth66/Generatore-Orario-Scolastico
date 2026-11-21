@@ -257,12 +257,43 @@ public class GenOrario {
         if (sdoppia && perMateria.containsKey("TEDESCO") && perMateria.containsKey("FRANCESE")) {
             slots.addAll(sdoppiaLingue(perMateria.remove("TEDESCO"), perMateria.remove("FRANCESE")));
         }
+        boolean is4AInfo = !lezioni.isEmpty() && lezioni.getFirst().getClasse() != null
+                && "4A-INFO".equalsIgnoreCase(lezioni.getFirst().getClasse().getChiave());
 
         for (List<Lezione> gruppo : perMateria.values())
-            slots.addAll(espandiGruppoMateria(gruppo));
+            slots.addAll(espandiGruppoMateria(gruppo, is4AInfo));
 
         return slots;
     }
+
+    // Il docente con più ore è il titolare, gli altri vanno in compresenza (o sdoppiamento lab in 4A-INFO)
+    private List<Slot> espandiGruppoMateria(List<Lezione> gruppo, boolean is4AInfo) {
+        gruppo.sort(Comparator.comparingInt(Lezione::getOreSettimanali).reversed());
+        Lezione principale = gruppo.getFirst();
+        String nomeMat = principale.getMateria().getNome().trim().toUpperCase();
+
+        int ore = (is4AInfo && "TELECOMUNICAZIONI".equals(nomeMat))
+                ? Math.min(principale.getOreSettimanali(), 3)
+                : principale.getOreSettimanali();
+
+        List<Slot> slots = new ArrayList<>();
+        for (int i = 0; i < ore; i++) {
+            List<Docente> altri = new ArrayList<>();
+            for (Lezione comp : gruppo.subList(1, gruppo.size())) {
+                if (i < comp.getOreSettimanali()
+                        && !principale.getDocente().equals(comp.getDocente())
+                        && !altri.contains(comp.getDocente())) {
+                    altri.add(comp.getDocente());
+                }
+            }
+
+            slots.add(new Slot(altri.isEmpty()
+                    ? principale
+                    : new Lezione(principale.getDocente(), altri, principale.getClasse(), principale.getMateria(), ore)));
+        }
+        return slots;
+    }
+
 
     private List<Slot> sdoppiaLingue(List<Lezione> tedList, List<Lezione> fraList) {
         Lezione ted = tedList.getFirst();
@@ -397,7 +428,6 @@ public class GenOrario {
                     .filter(s -> s.getLezione().hasCompresenza())
                     .count();
             compresenze.put(c.getChiave(), n);
-            System.out.println(c);
         }
 
         List<Classe> ordinate = classi.stream()
